@@ -21,12 +21,12 @@ public class Pet {
     private String name;
     @Column(name = "hp")
     private int hp;
-    @Column(name = "hungry")
-    private int hungry;
-    @Column(name = "sleep")
-    private int sleep;
-    @Column(name = "happy")
-    private int happy;
+    @Column(name = "fullness")
+    private int fullness;
+    @Column(name = "sleepiness")
+    private int sleepiness;
+    @Column(name = "happiness")
+    private int happiness;
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
@@ -36,8 +36,8 @@ public class Pet {
         this.name = name;
         this.lastUpdated = LocalDateTime.now();
         this.hp = 80;
-        this.hungry = 80;
-        this.sleep = 60;
-        this.happy = 80;
+        this.fullness = 80;
+        this.sleepiness = 60;
+        this.happiness = 80;
     }
 }
