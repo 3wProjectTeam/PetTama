@@ -1,10 +1,17 @@
 package com.example.PetTama.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
 public class Pet {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -14,12 +21,23 @@ public class Pet {
     private String name;
     @Column(name = "hp")
     private int hp;
-    @Column(name = "hungry")
-    private int hungry;
-    @Column(name = "sleep")
-    private int sleep;
-    @Column(name = "happy")
-    private int happy;
+    @Column(name = "fullness")
+    private int fullness;
+    @Column(name = "sleepiness")
+    private int sleepiness;
+    @Column(name = "happiness")
+    private int happiness;
     @Column(name = "last_updated")
-    private Date lastUpdated;
+    private LocalDateTime lastUpdated;
+
+    @Builder
+    public Pet(String name, User user) {
+        this.id = user.getId();
+        this.name = name;
+        this.lastUpdated = LocalDateTime.now();
+        this.hp = 80;
+        this.fullness = 80;
+        this.sleepiness = 60;
+        this.happiness = 80;
+    }
 }
