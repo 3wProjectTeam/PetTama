@@ -30,4 +30,9 @@ public class PetApiController {
         PetGetDto dto = petSer.createPet(userId, name);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
+    @PutMapping("{userId}/pets/{petId}")
+    public ResponseEntity<PetGetDto> feed(@PathVariable Long userId, @PathVariable Long petId) {
+        PetGetDto dto = petSer.feed(userId, petId);
+        return ResponseEntity.ok(dto);
+    }
 }

@@ -6,6 +6,7 @@ import com.example.PetTama.entity.User;
 import com.example.PetTama.repository.PetRepository;
 import com.example.PetTama.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Slf4j
 @Service
 public class PetService {
     private final PetRepository petRepository;
@@ -77,8 +79,11 @@ public class PetService {
     @Transactional
     public PetGetDto feed(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
+        log.info("Before Feed Pet: " + pet.getFullness());
         pet.setFullness(pet.getFullness() + 20);
         pet.setLastUpdated(LocalDateTime.now());
+        pet = petRepository.save(pet);
+        log.info("After Feed Pet: " + pet.getFullness());
         return new PetGetDto(
                 pet.getName(),
                 pet.getHp(),
