@@ -1,0 +1,94 @@
+body {
+    font-family: sans-serif;
+    margin: 20px;
+    background-color: #f4f4f4;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.user-section, .pet-creation, .pet-list-section, .pet-details-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+label {
+    display: inline-block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="text"], input[type="number"] {
+    padding: 8px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 8px 15px;
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #4cae4c;
+}
+
+#petList {
+    list-style: none;
+    padding: 0;
+}
+
+#petList li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#petList li:hover {
+    background-color: #f9f9f9;
+}
+
+#petList li:last-child {
+    border-bottom: none;
+}
+
+.pet-details-section p {
+    margin: 5px 0;
+}
+
+.pet-actions button {
+    margin-right: 10px;
+    margin-top: 10px;
+    background-color: #337ab7;
+}
+
+.pet-actions button:hover {
+    background-color: #286090;
+}
+
+#creationStatus, #actionStatus {
+    margin-top: 10px;
+    color: green;
+    font-style: italic;
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetTama</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+    <h1>PetTama</h1>
+
+    <div class="user-section">
+        <label for="userIdInput">User ID:</label>
+        <input type="number" id="userIdInput" value="1">
+        <button id="loadPetsButton">내 펫 불러오기</button>
+    </div>
+
+    <div class="pet-creation">
+        <h2>새 펫 만들기</h2>
+        <label for="petNameInput">펫 이름:</label>
+        <input type="text" id="petNameInput">
+        <button id="createPetButton">만들기</button>
+        <p id="creationStatus"></p>
+    </div>
+
+    <div class="pet-list-section">
+        <h2>내 펫 목록</h2>
+        <ul id="petList">
+        </ul>
+    </div>
+
+    <div class="pet-details-section" style="display: none;">
+        <h2>펫 정보</h2>
+        <div id="petDetails">
+            <p><strong>이름:</strong> <span id="petName"></span></p>
+            <p><strong>HP:</strong> <span id="petHp"></span></p>
+            <p><strong>포만감:</strong> <span id="petFullness"></span></p>
+            <p><strong>졸음:</strong> <span id="petSleepiness"></span></p>
+            <p><strong>행복도:</strong> <span id="petHappiness"></span></p>
+        </div>
+        <div class="pet-actions">
+            <button class="action-button" data-action="feed">밥 주기</button>
+            <button class="action-button" data-action="play">놀아주기</button>
+            <button class="action-button" data-action="brush">빗질하기</button>
+            <button class="action-button" data-action="sleep">재우기</button>
+            <button class="action-button" data-action="snack">간식 주기</button>
+        </div>
+        <p id="actionStatus"></p>
+    </div>
+</div>
+
+<script src="/js/script.js"></script>
+</body>
+</html>
