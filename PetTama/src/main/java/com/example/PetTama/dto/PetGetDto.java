@@ -1,9 +1,7 @@
 package com.example.PetTama.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.example.PetTama.entity.Pet;
+import lombok.*;
 
 @Getter
 @Setter
@@ -13,6 +11,17 @@ public class PetGetDto {
     private String name;
     private int hp;
     private int fullness;
-    private int sleepiness;
     private int happiness;
+    private int tired;
+    private int thirsty;
+
+    @Builder
+    public PetGetDto(Pet pet) {
+        this.name = pet.getName();
+        this.hp = pet.getHp();
+        this.fullness = pet.getFullness();
+        this.tired = pet.getTired();
+        this.thirsty = pet.getThirsty();
+        this.happiness = pet.getHappiness();
+    }
 }

@@ -32,8 +32,8 @@ public class PetService {
                         p.getHp(),
                         p.getFullness(),
                         p.getTired(),
-                        p.getHappiness()
-                ))
+                        p.getThirsty(),
+                        p.getHappiness()))
                 .toList();
     }
 
@@ -44,8 +44,8 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 
     @Transactional
@@ -73,8 +73,8 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 
     @Transactional
@@ -90,8 +90,8 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 
     @Transactional
@@ -104,8 +104,8 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 
     @Transactional
@@ -118,8 +118,8 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 
     @Transactional
@@ -132,8 +132,8 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 
     @Transactional
@@ -146,8 +146,8 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 
     @Transactional
@@ -162,7 +162,7 @@ public class PetService {
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getTired(),
-                pet.getHappiness()
-        );
+                pet.getThirsty(),
+                pet.getHappiness());
     }
 }
