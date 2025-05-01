@@ -23,8 +23,8 @@ public class Pet {
     private int hp;
     @Column(name = "fullness")
     private int fullness;
-    @Column(name = "sleepiness")
-    private int sleepiness;
+    @Column(name = "tired")
+    private int tired;
     @Column(name = "happiness")
     private int happiness;
     @Column(name = "last_updated")
@@ -37,7 +37,7 @@ public class Pet {
         this.lastUpdated = LocalDateTime.now();
         this.hp = 80;
         this.fullness = 80;
-        this.sleepiness = 60;
+        this.tired = 60;
         this.happiness = 80;
     }
 }

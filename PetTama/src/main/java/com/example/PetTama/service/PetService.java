@@ -19,6 +19,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PetService {
     private final PetRepository petRepository;
     private final UserRepository userRepository;
+
     public PetService(PetRepository petRepository, UserRepository userRepository) {
         this.petRepository = petRepository;
         this.userRepository = userRepository;
@@ -30,7 +31,7 @@ public class PetService {
                         p.getName(),
                         p.getHp(),
                         p.getFullness(),
-                        p.getSleepiness(),
+                        p.getTired(),
                         p.getHappiness()
                 ))
                 .toList();
@@ -42,7 +43,7 @@ public class PetService {
                 pet.getName(),
                 pet.getHp(),
                 pet.getFullness(),
-                pet.getSleepiness(),
+                pet.getTired(),
                 pet.getHappiness()
         );
     }
@@ -63,7 +64,7 @@ public class PetService {
         pet.setName(name);
         pet.setHp(hp);
         pet.setFullness(fullness);
-        pet.setSleepiness(sleepiness);
+        pet.setTired(sleepiness);
         pet.setHappiness(happiness);
         pet.setLastUpdated(LocalDateTime.now());
         pet = petRepository.save(pet);
@@ -71,7 +72,7 @@ public class PetService {
                 pet.getName(),
                 pet.getHp(),
                 pet.getFullness(),
-                pet.getSleepiness(),
+                pet.getTired(),
                 pet.getHappiness()
         );
     }
@@ -79,16 +80,16 @@ public class PetService {
     @Transactional
     public PetGetDto feed(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
-        log.info("Before Feed Pet: " + pet.getFullness());
+        log.info("Before Feed Pet: {}", pet.getFullness());
         pet.setFullness(pet.getFullness() + 20);
         pet.setLastUpdated(LocalDateTime.now());
         pet = petRepository.save(pet);
-        log.info("After Feed Pet: " + pet.getFullness());
+        log.info("After Feed Pet: {}", pet.getFullness());
         return new PetGetDto(
                 pet.getName(),
                 pet.getHp(),
                 pet.getFullness(),
-                pet.getSleepiness(),
+                pet.getTired(),
                 pet.getHappiness()
         );
     }
@@ -102,10 +103,11 @@ public class PetService {
                 pet.getName(),
                 pet.getHp(),
                 pet.getFullness(),
-                pet.getSleepiness(),
+                pet.getTired(),
                 pet.getHappiness()
         );
     }
+
     @Transactional
     public PetGetDto brush(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
@@ -115,23 +117,25 @@ public class PetService {
                 pet.getName(),
                 pet.getHp(),
                 pet.getFullness(),
-                pet.getSleepiness(),
+                pet.getTired(),
                 pet.getHappiness()
         );
     }
+
     @Transactional
     public PetGetDto sleep(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
-        pet.setSleepiness(pet.getSleepiness() - 20);
+        pet.setTired(pet.getTired() - 20);
         pet.setLastUpdated(LocalDateTime.now());
         return new PetGetDto(
                 pet.getName(),
                 pet.getHp(),
                 pet.getFullness(),
-                pet.getSleepiness(),
+                pet.getTired(),
                 pet.getHappiness()
         );
     }
+
     @Transactional
     public PetGetDto snack(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
@@ -141,7 +145,23 @@ public class PetService {
                 pet.getName(),
                 pet.getHp(),
                 pet.getFullness(),
-                pet.getSleepiness(),
+                pet.getTired(),
+                pet.getHappiness()
+        );
+    }
+
+    @Transactional
+    public PetGetDto petWalking(Long userId, Long petId) {
+        Pet pet = petRepository.findByIdAndUserId(petId, userId);
+        pet.setHappiness(pet.getHappiness() + 5);
+        pet.setFullness(pet.getFullness() - 15);
+        pet.setTired(pet.getTired() + 15);
+        pet.setLastUpdated(LocalDateTime.now());
+        return new PetGetDto(
+                pet.getName(),
+                pet.getHp(),
+                pet.getFullness(),
+                pet.getTired(),
                 pet.getHappiness()
         );
     }
