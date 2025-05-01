@@ -1,6 +1,5 @@
 package com.example.PetTama.dto;
 
-import com.example.PetTama.entity.Pet;
 import lombok.*;
 
 @Getter
@@ -14,4 +13,5 @@ public class PetGetDto {
     private int happiness;
     private int tired;
     private int thirsty;
+    private int stress;
 }

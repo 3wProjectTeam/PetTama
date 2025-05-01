@@ -28,10 +28,12 @@ public class Pet {
     private int happiness;
     @Column(name = "thirsty")
     private int thirsty;
+    @Column(name = "stress")
+    private int stress;
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
     public PetGetDto toDto(Pet pet) {
-        return new PetGetDto(pet.getName(), pet.hp, pet.fullness, pet.tired, pet.happiness, pet.thirsty);
+        return new PetGetDto(pet.getName(), pet.hp, pet.fullness, pet.tired, pet.happiness, pet.thirsty, pet.getStress());
     }
 }
