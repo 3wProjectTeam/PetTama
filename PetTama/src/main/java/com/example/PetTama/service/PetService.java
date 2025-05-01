@@ -27,25 +27,13 @@ public class PetService {
 
     public List<PetGetDto> getAllPets(Long userId) {
         return petRepository.findAllByUserId(userId).stream()
-                .map(p -> new PetGetDto(
-                        p.getName(),
-                        p.getHp(),
-                        p.getFullness(),
-                        p.getTired(),
-                        p.getThirsty(),
-                        p.getHappiness()))
+                .map(p -> p.toDto(p))
                 .toList();
     }
 
     public PetGetDto getPet(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -68,13 +56,7 @@ public class PetService {
         pet.setHappiness(happiness);
         pet.setLastUpdated(LocalDateTime.now());
         pet = petRepository.save(pet);
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -85,13 +67,7 @@ public class PetService {
         pet.setLastUpdated(LocalDateTime.now());
         pet = petRepository.save(pet);
         log.info("After Feed Pet: {}", pet.getFullness());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -99,13 +75,7 @@ public class PetService {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         pet.setHappiness(pet.getHappiness() + 15);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -113,13 +83,7 @@ public class PetService {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         pet.setHappiness(pet.getHappiness() + 15);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -127,13 +91,7 @@ public class PetService {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         pet.setTired(pet.getTired() - 20);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -141,13 +99,7 @@ public class PetService {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         pet.setFullness(pet.getFullness() + 5);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -157,12 +109,6 @@ public class PetService {
         pet.setFullness(pet.getFullness() - 15);
         pet.setTired(pet.getTired() + 15);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getTired(),
-                pet.getThirsty(),
-                pet.getHappiness());
+        return pet.toDto(pet);
     }
 }

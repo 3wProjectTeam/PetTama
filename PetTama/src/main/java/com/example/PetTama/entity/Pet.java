@@ -1,5 +1,6 @@
 package com.example.PetTama.entity;
 
+import com.example.PetTama.dto.PetGetDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,4 +30,8 @@ public class Pet {
     private int thirsty;
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
+
+    public PetGetDto toDto(Pet pet) {
+        return new PetGetDto(pet.getName(), pet.hp, pet.fullness, pet.tired, pet.happiness, pet.thirsty);
+    }
 }

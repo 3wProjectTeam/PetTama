@@ -14,14 +14,4 @@ public class PetGetDto {
     private int happiness;
     private int tired;
     private int thirsty;
-
-    @Builder
-    public PetGetDto(Pet pet) {
-        this.name = pet.getName();
-        this.hp = pet.getHp();
-        this.fullness = pet.getFullness();
-        this.tired = pet.getTired();
-        this.thirsty = pet.getThirsty();
-        this.happiness = pet.getHappiness();
-    }
 }
