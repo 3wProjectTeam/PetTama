@@ -1,272 +1,515 @@
 /**
- * Pet State Visualization
- * Adds visualizations and state indicators to the pet UI
+ * PetTama - 메인 자바스크립트 파일
+ * 펫 관리 및 FSM(Finite State Machine) 기반 상태 관리
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Get the pet details section
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM 요소
+    const userIdInput = document.getElementById('userIdInput');
+    const loadPetsButton = document.getElementById('loadPetsButton');
+    const petListUl = document.getElementById('petList');
     const petDetailsSection = document.querySelector('.pet-details-section');
-    
-    // Create a new div for the state visualization
-    const stateVisDiv = document.createElement('div');
-    stateVisDiv.className = 'pet-state-visualization';
-    stateVisDiv.innerHTML = `
-        <h3>Pet State</h3>
-        <div class="state-indicator">
-            <div class="state-icon">😊</div>
-            <div class="state-name">HAPPY</div>
-        </div>
-        <div class="state-recommendation">
-            Your pet is happy and healthy!
-        </div>
-        <div class="pet-stats-bars">
-            <div class="stat-bar-container">
-                <label>HP:</label>
-                <div class="stat-bar">
-                    <div class="stat-bar-fill hp-bar" style="width: 100%"></div>
-                </div>
-                <span class="stat-value">100</span>
-            </div>
-            <div class="stat-bar-container">
-                <label>Fullness:</label>
-                <div class="stat-bar">
-                    <div class="stat-bar-fill fullness-bar" style="width: 100%"></div>
-                </div>
-                <span class="stat-value">100</span>
-            </div>
-            <div class="stat-bar-container">
-                <label>Happiness:</label>
-                <div class="stat-bar">
-                    <div class="stat-bar-fill happiness-bar" style="width: 100%"></div>
-                </div>
-                <span class="stat-value">100</span>
-            </div>
-            <div class="stat-bar-container">
-                <label>Tired:</label>
-                <div class="stat-bar">
-                    <div class="stat-bar-fill tired-bar" style="width: 0%"></div>
-                </div>
-                <span class="stat-value">0</span>
-            </div>
-            <div class="stat-bar-container">
-                <label>Thirsty:</label>
-                <div class="stat-bar">
-                    <div class="stat-bar-fill thirsty-bar" style="width: 0%"></div>
-                </div>
-                <span class="stat-value">0</span>
-            </div>
-            <div class="stat-bar-container">
-                <label>Stress:</label>
-                <div class="stat-bar">
-                    <div class="stat-bar-fill stress-bar" style="width: 0%"></div>
-                </div>
-                <span class="stat-value">0</span>
-            </div>
-        </div>
-    `;
-    
-    // Add CSS styles for the visualization
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-        .pet-state-visualization {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
+    const petNameInput = document.getElementById('petNameInput');
+    const createPetButton = document.getElementById('createPetButton');
+    const creationStatusP = document.getElementById('creationStatus');
+    const actionStatusP = document.getElementById('actionStatus');
+    const actionButtons = document.querySelectorAll('.action-button');
+    const petDetailName = document.getElementById('petDetailName');
+
+    // 스탯 관련 요소
+    const statBars = {
+        hp: document.getElementById('hpBar'),
+        fullness: document.getElementById('fullnessBar'),
+        happiness: document.getElementById('happinessBar'),
+        tired: document.getElementById('tiredBar'),
+        thirsty: document.getElementById('thirstyBar'),
+        stress: document.getElementById('stressBar')
+    };
+
+    const statValues = {
+        hp: document.getElementById('hpValue'),
+        fullness: document.getElementById('fullnessValue'),
+        happiness: document.getElementById('happinessValue'),
+        tired: document.getElementById('tiredValue'),
+        thirsty: document.getElementById('thirstyValue'),
+        stress: document.getElementById('stressValue')
+    };
+
+    // 펫 상태 관련 요소
+    const petImage = document.querySelector('.pet-image');
+    const petStateBadge = document.querySelector('.pet-state-badge');
+    const petRecommendation = document.getElementById('petRecommendation');
+
+    // 상태 저장 변수
+    let currentUserId = null;
+    let currentPetId = null;
+    let petsData = [];
+
+    // 펫 이모지 매핑
+    const petEmojis = {
+        'default': '🐱',
+        'dog': '🐶',
+        'cat': '🐱',
+        'rabbit': '🐰',
+        'hamster': '🐹',
+        'bird': '🐦',
+        'fish': '🐠',
+        'turtle': '🐢',
+        'unicorn': '🦄'
+    };
+
+    // 상태 이모지 매핑
+    const stateEmojis = {
+        'HAPPY': '😊',
+        'HUNGRY': '🍽️',
+        'TIRED': '😴',
+        'BORED': '😐',
+        'STRESSED': '😰',
+        'THIRSTY': '💧',
+        'SICK': '🤒',
+        'CRITICAL': '⚠️'
+    };
+
+    // 상태 한글 이름 매핑
+    const stateNames = {
+        'HAPPY': '행복함',
+        'HUNGRY': '배고픔',
+        'TIRED': '피곤함',
+        'BORED': '지루함',
+        'STRESSED': '스트레스',
+        'THIRSTY': '목마름',
+        'SICK': '아픔',
+        'CRITICAL': '위험!'
+    };
+
+    // API 경로
+    const API_BASE_URL = '/api/user-nums';
+
+    // === 유틸리티 함수 ===
+
+    /**
+     * 상태 메시지 표시
+     * @param {HTMLElement} element - 상태 메시지를 표시할 요소
+     * @param {string} message - 메시지 내용
+     * @param {string} type - 메시지 타입 (success, error, info)
+     * @param {number} duration - 표시 시간(ms), 0이면 계속 표시
+     */
+    function showStatusMessage(element, message, type, duration) {
+        if (!element) return;
+
+        type = type || 'info';
+        duration = duration || 3000;
+
+        // 기존 클래스 제거
+        element.classList.remove('success', 'error', 'info');
+
+        // 새 클래스 및 메시지 설정
+        element.classList.add(type);
+        element.textContent = message;
+
+        // 일정 시간 후 메시지 숨김
+        if (duration > 0) {
+            setTimeout(function() {
+                element.textContent = '';
+                element.classList.remove(type);
+            }, duration);
         }
-        
-        .state-indicator {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
+    }
+
+    /**
+     * API 요청 처리
+     * @param {string} url - API 엔드포인트
+     * @param {Object} options - fetch 옵션
+     * @returns {Promise<any>} - API 응답
+     */
+    async function fetchWithErrorHandling(url, options) {
+        options = options || {};
+
+        try {
+            const response = await fetch(url, options);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(function() {
+                    return { message: '알 수 없는 오류가 발생했습니다.' };
+                });
+                throw new Error(errorData.message || "HTTP 오류! 상태: " + response.status);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API 요청 오류:', error);
+            throw error;
         }
-        
-        .state-icon {
-            font-size: 32px;
-            margin-right: 10px;
-        }
-        
-        .state-name {
-            font-weight: bold;
-            font-size: 18px;
-        }
-        
-        .state-recommendation {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #fffde7;
-            border-left: 4px solid #ffd600;
-            border-radius: 2px;
-        }
-        
-        .pet-stats-bars {
-            margin-top: 15px;
-        }
-        
-        .stat-bar-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .stat-bar-container label {
-            width: 80px;
-            margin-right: 10px;
-        }
-        
-        .stat-bar {
-            flex-grow: 1;
-            height: 12px;
-            background-color: #eee;
-            border-radius: 6px;
-            overflow: hidden;
-            margin-right: 10px;
-        }
-        
-        .stat-bar-fill {
-            height: 100%;
-            border-radius: 6px;
-            transition: width 0.5s ease-in-out;
-        }
-        
-        .hp-bar {
-            background-color: #4caf50;
-        }
-        
-        .fullness-bar {
-            background-color: #ff9800;
-        }
-        
-        .happiness-bar {
-            background-color: #2196f3;
-        }
-        
-        .tired-bar {
-            background-color: #9c27b0;
-        }
-        
-        .thirsty-bar {
-            background-color: #00bcd4;
-        }
-        
-        .stress-bar {
-            background-color: #f44336;
-        }
-        
-        .stat-value {
-            min-width: 30px;
-            text-align: right;
-        }
-        
-        /* State-specific styling */
-        .state-happy .state-icon { color: #4caf50; }
-        .state-hungry .state-icon { color: #ff9800; }
-        .state-tired .state-icon { color: #9c27b0; }
-        .state-bored .state-icon { color: #2196f3; }
-        .state-stressed .state-icon { color: #f44336; }
-        .state-thirsty .state-icon { color: #00bcd4; }
-        .state-sick .state-icon { color: #795548; }
-        .state-critical .state-icon { 
-            color: #f44336;
-            animation: pulse 1s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-    `;
-    document.head.appendChild(styleElement);
-    
-    // Insert the visualization div into the pet details section
-    const petDetailsDiv = document.getElementById('petDetails');
-    petDetailsSection.insertBefore(stateVisDiv, petDetailsDiv.nextSibling);
-    
-    // Function to update the visualization based on pet data
-    window.updatePetStateVisualization = function(pet) {
-        if (!pet) return;
-        
-        // Update stat bars
-        document.querySelector('.hp-bar').style.width = `${pet.hp}%`;
-        document.querySelector('.fullness-bar').style.width = `${pet.fullness}%`;
-        document.querySelector('.happiness-bar').style.width = `${pet.happiness}%`;
-        document.querySelector('.tired-bar').style.width = `${pet.tired}%`;
-        document.querySelector('.thirsty-bar').style.width = `${pet.thirsty}%`;
-        document.querySelector('.stress-bar').style.width = `${pet.stress}%`;
-        
-        // Update stat values
-        document.querySelectorAll('.stat-value')[0].textContent = pet.hp;
-        document.querySelectorAll('.stat-value')[1].textContent = pet.fullness;
-        document.querySelectorAll('.stat-value')[2].textContent = pet.happiness;
-        document.querySelectorAll('.stat-value')[3].textContent = pet.tired;
-        document.querySelectorAll('.stat-value')[4].textContent = pet.thirsty;
-        document.querySelectorAll('.stat-value')[5].textContent = pet.stress;
-        
-        // Update state indicator if the pet has a state property
-        if (pet.state) {
-            const stateIcon = document.querySelector('.state-icon');
-            const stateName = document.querySelector('.state-name');
-            
-            // Remove all state classes
-            const stateClasses = ['state-happy', 'state-hungry', 'state-tired', 
-                                 'state-bored', 'state-stressed', 'state-thirsty', 
-                                 'state-sick', 'state-critical'];
-            stateClasses.forEach(cls => {
-                document.querySelector('.state-indicator').classList.remove(cls);
+    }
+
+    // === 메인 기능 함수 ===
+
+    /**
+     * 사용자의 모든 펫 가져오기
+     * @param {number} userId - 사용자 ID
+     */
+    async function fetchPets(userId) {
+        try {
+            const pets = await fetchWithErrorHandling(API_BASE_URL + "/" + userId);
+
+            // 추가 필드가 없는 경우 id 필드 추가 (API 수정 전까지 임시 조치)
+            petsData = pets.map(function(pet, index) {
+                return {
+                    ...pet,
+                    id: pet.id || index + 1 // id가 없으면 인덱스로 대체
+                };
             });
-            
-            // Add the current state class
-            document.querySelector('.state-indicator').classList.add(`state-${pet.state.toLowerCase()}`);
-            
-            // Update icon and name based on state
-            stateName.textContent = pet.state;
-            
-            switch(pet.state) {
-                case 'HAPPY':
-                    stateIcon.textContent = '😊';
-                    break;
-                case 'HUNGRY':
-                    stateIcon.textContent = '🍽️';
-                    break;
-                case 'TIRED':
-                    stateIcon.textContent = '😴';
-                    break;
-                case 'BORED':
-                    stateIcon.textContent = '😐';
-                    break;
-                case 'STRESSED':
-                    stateIcon.textContent = '😰';
-                    break;
-                case 'THIRSTY':
-                    stateIcon.textContent = '💧';
-                    break;
-                case 'SICK':
-                    stateIcon.textContent = '🤒';
-                    break;
-                case 'CRITICAL':
-                    stateIcon.textContent = '⚠️';
-                    break;
-                default:
-                    stateIcon.textContent = '😊';
+
+            displayPetList(petsData);
+        } catch (error) {
+            showStatusMessage(creationStatusP, "펫 목록을 불러오는데 실패했습니다: " + error.message, 'error');
+            petListUl.innerHTML = '<li>펫 목록을 불러오는데 실패했습니다.</li>';
+        }
+    }
+
+    /**
+     * 특정 펫의 상세 정보 가져오기
+     * @param {number} userId - 사용자 ID
+     * @param {number} petId - 펫 ID
+     */
+    async function fetchPetDetails(userId, petId) {
+        try {
+            // API에서 최신 정보 가져오기
+            const pet = await fetchWithErrorHandling(API_BASE_URL + "/" + userId + "/pets/" + petId);
+
+            // id 추가 (필요한 경우)
+            if (!pet.id) {
+                pet.id = petId;
+            }
+
+            // 펫 상세 정보 표시
+            displayPetDetails(pet);
+
+            // 현재 펫 ID 저장
+            currentPetId = petId;
+
+            // 펫 상세 섹션 표시
+            petDetailsSection.style.display = 'block';
+
+            // 선택한 펫 목록 항목 강조
+            highlightSelectedPet(petId);
+        } catch (error) {
+            showStatusMessage(actionStatusP, "펫 정보를 불러오는데 실패했습니다: " + error.message, 'error');
+        }
+    }
+
+    /**
+     * 펫 목록 화면에 표시
+     * @param {Array} pets - 펫 목록 데이터
+     */
+    function displayPetList(pets) {
+        petListUl.innerHTML = '';
+
+        if (pets.length === 0) {
+            petListUl.innerHTML = '<li>등록된 펫이 없습니다.</li>';
+            return;
+        }
+
+        pets.forEach(function(pet) {
+            const li = document.createElement('li');
+            li.textContent = pet.name;
+            li.dataset.petId = pet.id;
+
+            // 펫 클릭 시 상세 정보 표시
+            li.addEventListener('click', function() {
+                fetchPetDetails(currentUserId, pet.id);
+            });
+
+            petListUl.appendChild(li);
+        });
+    }
+
+    /**
+     * 선택한 펫 목록 항목 강조
+     * @param {number} petId - 선택한 펫 ID
+     */
+    function highlightSelectedPet(petId) {
+        // 모든 항목에서 선택 클래스 제거
+        document.querySelectorAll('#petList li').forEach(function(item) {
+            item.classList.remove('selected');
+        });
+
+        // 선택한 항목에 클래스 추가
+        const selectedItem = document.querySelector('#petList li[data-pet-id="' + petId + '"]');
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+        }
+    }
+
+    /**
+     * 펫 상세 정보 화면에 표시
+     * @param {Object} pet - 펫 데이터
+     */
+    function displayPetDetails(pet) {
+        // 펫 이름 표시
+        petDetailName.textContent = pet.name;
+
+        // 스탯 값 및 바 업데이트
+        updateStatBar('hp', pet.hp);
+        updateStatBar('fullness', pet.fullness);
+        updateStatBar('happiness', pet.happiness);
+        updateStatBar('tired', pet.tired);
+        updateStatBar('thirsty', pet.thirsty);
+        updateStatBar('stress', pet.stress);
+
+        // 상태 정보 업데이트
+        updatePetState(pet);
+    }
+
+    /**
+     * 스탯 바 및 값 업데이트
+     * @param {string} statName - 스탯 이름
+     * @param {number} value - 스탯 값
+     */
+    function updateStatBar(statName, value) {
+        const bar = statBars[statName];
+        const valueElement = statValues[statName];
+
+        if (bar && valueElement) {
+            // 값 표시
+            valueElement.textContent = value;
+
+            // 바 너비 설정 (0-100%)
+            bar.style.width = value + "%";
+
+            // 낮은 값/높은 값에 따른 스타일 변경
+            if (statName === 'hp' || statName === 'fullness' || statName === 'happiness') {
+                // 이 스탯들은 높을수록 좋음
+                if (value <= 20) {
+                    bar.style.backgroundColor = '#EF5350'; // 위험
+                } else if (value <= 50) {
+                    bar.style.backgroundColor = '#FFA726'; // 주의
+                } else {
+                    bar.style.backgroundColor = ''; // 기본 색상
+                }
+            } else {
+                // 이 스탯들은 낮을수록 좋음 (tired, thirsty, stress)
+                if (value >= 80) {
+                    bar.style.backgroundColor = '#EF5350'; // 위험
+                } else if (value >= 50) {
+                    bar.style.backgroundColor = '#FFA726'; // 주의
+                } else {
+                    bar.style.backgroundColor = ''; // 기본 색상
+                }
             }
         }
-        
-        // Update recommendation if available
-        if (pet.recommendation) {
-            document.querySelector('.state-recommendation').textContent = pet.recommendation;
+    }
+
+    /**
+     * 펫 상태 정보 업데이트
+     * @param {Object} pet - 펫 데이터
+     */
+    function updatePetState(pet) {
+        // FSM에서 상태 정보가 오는 경우
+        const state = pet.state || determineState(pet);
+        const recommendation = pet.recommendation || getDefaultRecommendation(state);
+
+        // 상태 뱃지 업데이트
+        petStateBadge.textContent = stateNames[state] || '정상';
+        petStateBadge.className = 'pet-state-badge'; // 기존 클래스 초기화
+        petStateBadge.classList.add(state.toLowerCase());
+
+        // 펫 이미지 업데이트
+        petImage.textContent = stateEmojis[state] || petEmojis.default;
+
+        // 추천 메시지 업데이트
+        petRecommendation.textContent = recommendation;
+    }
+
+    /**
+     * 펫 상태 결정 (백엔드 상태 정보가 없는 경우 대비)
+     * @param {Object} pet - 펫 데이터
+     * @returns {string} - 결정된 상태
+     */
+    function determineState(pet) {
+        // 위험한 상태 먼저 확인
+        if (pet.hp <= 10) return 'CRITICAL';
+
+        if (pet.fullness <= 20) return 'HUNGRY';
+        if (pet.thirsty >= 80) return 'THIRSTY';
+        if (pet.tired >= 80) return 'TIRED';
+        if (pet.stress >= 80) return 'STRESSED';
+        if (pet.happiness <= 20) return 'BORED';
+
+        // 건강한 상태
+        return 'HAPPY';
+    }
+
+    /**
+     * 상태별 기본 추천 메시지
+     * @param {string} state - 펫 상태
+     * @returns {string} - 추천 메시지
+     */
+    function getDefaultRecommendation(state) {
+        switch (state) {
+            case 'HUNGRY':
+                return '펫이 배고파합니다! 밥을 주세요.';
+            case 'THIRSTY':
+                return '펫이 목말라합니다! 물을 주세요.';
+            case 'TIRED':
+                return '펫이 피곤해합니다! 휴식이 필요합니다.';
+            case 'BORED':
+                return '펫이 지루해합니다! 놀아주세요.';
+            case 'STRESSED':
+                return '펫이 스트레스를 받고 있습니다! 빗질이나 산책을 해주세요.';
+            case 'SICK':
+                return '펫이 아픕니다! 모든 상태를 관리해주세요.';
+            case 'CRITICAL':
+                return '경고! 펫이 위험한 상태입니다! 즉시 관리가 필요합니다!';
+            case 'HAPPY':
+                return '펫이 행복해합니다! 잘 돌보고 계시네요!';
+            default:
+                return '펫을 정기적으로 확인해주세요.';
         }
-    };
-    
-    // Modify the original fetchPetDetails function to update visualization
-    const originalDisplayPetDetails = window.displayPetDetails || function() {};
-    
-    window.displayPetDetails = function(pet) {
-        // Call the original function
-        originalDisplayPetDetails(pet);
-        
-        // Update the visualization
-        updatePetStateVisualization(pet);
-    };
+    }
+
+    /**
+     * 펫 생성
+     * @param {number} userId - 사용자 ID
+     * @param {string} name - 펫 이름
+     */
+    async function createPet(userId, name) {
+        try {
+            showStatusMessage(creationStatusP, '펫 생성 중...', 'info');
+
+            const newPet = await fetchWithErrorHandling(
+                API_BASE_URL + "/" + userId + "?name=" + encodeURIComponent(name),
+                { method: 'POST' }
+            );
+
+            showStatusMessage(creationStatusP, '"' + newPet.name + '" 생성 완료!', 'success');
+            petNameInput.value = ''; // 입력 필드 초기화
+
+            // 펫 목록 새로고침
+            fetchPets(userId);
+        } catch (error) {
+            showStatusMessage(creationStatusP, '펫 생성 실패: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 펫 액션 수행
+     * @param {number} userId - 사용자 ID
+     * @param {number} petId - 펫 ID
+     * @param {string} action - 액션 (feed, play, sleep 등)
+     */
+    async function performPetAction(userId, petId, action) {
+        try {
+            showStatusMessage(actionStatusP, getActionName(action) + " 중...", 'info');
+
+            // 버튼 애니메이션
+            const actionButton = document.querySelector('.action-button[data-action="' + action + '"]');
+            if (actionButton) {
+                actionButton.classList.add('action-success');
+                setTimeout(function() {
+                    actionButton.classList.remove('action-success');
+                }, 500);
+            }
+
+            // API 요청 (각 액션에 맞는 엔드포인트 사용)
+            const updatedPet = await fetchWithErrorHandling(
+                API_BASE_URL + "/" + userId + "/pets/" + petId + "/" + action,
+                { method: 'PUT' }
+            );
+
+            // 펫 정보 업데이트
+            if (!updatedPet.id) {
+                updatedPet.id = petId;
+            }
+
+            displayPetDetails(updatedPet);
+
+            // 성공 메시지
+            showStatusMessage(
+                actionStatusP,
+                '"' + getActionName(action) + '" 완료!',
+                'success'
+            );
+
+            // 로컬 펫 데이터 업데이트
+            const index = petsData.findIndex(function(p) { return p.id === petId; });
+            if (index !== -1) {
+                petsData[index] = Object.assign({}, petsData[index], updatedPet);
+            }
+
+        } catch (error) {
+            showStatusMessage(
+                actionStatusP,
+                getActionName(action) + ' 실패: ' + error.message,
+                'error'
+            );
+        }
+    }
+
+    /**
+     * 액션 이름 가져오기
+     * @param {string} action - 액션 코드
+     * @returns {string} - 액션 한글 이름
+     */
+    function getActionName(action) {
+        const actionNames = {
+            'feed': '밥 주기',
+            'water': '물 주기',
+            'play': '놀아주기',
+            'brush': '빗질하기',
+            'sleep': '재우기',
+            'snack': '간식 주기',
+            'walk': '산책하기'
+        };
+
+        return actionNames[action] || action;
+    }
+
+    // === 이벤트 리스너 설정 ===
+
+    // 펫 목록 불러오기 버튼
+    loadPetsButton.addEventListener('click', function() {
+        const userId = parseInt(userIdInput.value, 10);
+        if (userId) {
+            currentUserId = userId;
+            petDetailsSection.style.display = 'none'; // 상세 정보 숨기기
+            fetchPets(currentUserId);
+        } else {
+            showStatusMessage(creationStatusP, '유효한 사용자 ID를 입력하세요.', 'error');
+        }
+    });
+
+    // 펫 생성 버튼
+    createPetButton.addEventListener('click', function() {
+        const userId = parseInt(userIdInput.value, 10);
+        const petName = petNameInput.value.trim();
+
+        if (!userId) {
+            showStatusMessage(creationStatusP, '유효한 사용자 ID를 입력하세요.', 'error');
+        } else if (!petName) {
+            showStatusMessage(creationStatusP, '펫 이름을 입력하세요.', 'error');
+        } else {
+            createPet(userId, petName);
+        }
+    });
+
+    // 펫 관리 액션 버튼들
+    actionButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            if (!currentUserId || !currentPetId) {
+                showStatusMessage(actionStatusP, '먼저 펫을 선택해주세요.', 'error');
+                return;
+            }
+
+            const action = button.dataset.action;
+            performPetAction(currentUserId, currentPetId, action);
+        });
+    });
+
+    // 페이지 로드 시 초기화 (선택 사항)
+    const initialUserId = parseInt(userIdInput.value, 10);
+    if (initialUserId) {
+        currentUserId = initialUserId;
+        fetchPets(currentUserId);
+    }
 });

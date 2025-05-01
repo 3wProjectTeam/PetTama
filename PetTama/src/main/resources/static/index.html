@@ -3,52 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PetTama</title>
+    <title>PetTama - 가상 반려동물</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="container">
-    <h1>PetTama</h1>
+    <header>
+        <h1>PetTama</h1>
+        <p class="subtitle">당신만의 가상 반려동물을 키워보세요!</p>
+    </header>
 
     <div class="user-section">
-        <label for="userIdInput">User ID:</label>
+        <label for="userIdInput">사용자 ID:</label>
         <input type="number" id="userIdInput" value="1">
-        <button id="loadPetsButton">내 펫 불러오기</button>
+        <button id="loadPetsButton" class="primary-btn">내 펫 불러오기</button>
     </div>
 
-    <div class="pet-creation">
-        <h2>새 펫 만들기</h2>
-        <label for="petNameInput">펫 이름:</label>
-        <input type="text" id="petNameInput">
-        <button id="createPetButton">만들기</button>
-        <p id="creationStatus"></p>
-    </div>
+    <div class="main-content">
+        <div class="left-panel">
+            <div class="pet-creation">
+                <h2>새 펫 만들기</h2>
+                <div class="input-group">
+                    <label for="petNameInput">펫 이름:</label>
+                    <input type="text" id="petNameInput" placeholder="이름을 입력하세요">
+                </div>
+                <button id="createPetButton" class="primary-btn">만들기</button>
+                <p id="creationStatus" class="status-message"></p>
+            </div>
 
-    <div class="pet-list-section">
-        <h2>내 펫 목록</h2>
-        <ul id="petList">
-        </ul>
-    </div>
-
-    <div class="pet-details-section" style="display: none;">
-        <h2>펫 정보</h2>
-        <div id="petDetails">
-            <p><strong>이름:</strong> <span id="petName"></span></p>
-            <p><strong>HP:</strong> <span id="petHp"></span></p>
-            <p><strong>포만감:</strong> <span id="petFullness"></span></p>
-            <p><strong>졸음:</strong> <span id="petSleepiness"></span></p>
-            <p><strong>행복도:</strong> <span id="petHappiness"></span></p>
+            <div class="pet-list-section">
+                <h2>내 펫 목록</h2>
+                <ul id="petList" class="pet-list">
+                    <!-- 펫 목록이 여기에 동적으로 추가됩니다 -->
+                </ul>
+            </div>
         </div>
-        <div class="pet-actions">
-            <button class="action-button" data-action="feed">밥 주기</button>
-            <button class="action-button" data-action="play">놀아주기</button>
-            <button class="action-button" data-action="brush">빗질하기</button>
-            <button class="action-button" data-action="sleep">재우기</button>
-            <button class="action-button" data-action="snack">간식 주기</button>
+
+        <div class="right-panel">
+            <div class="pet-details-section" style="display: none;">
+                <div class="pet-header">
+                    <h2 id="petDetailName">펫 이름</h2>
+                    <div class="pet-avatar">
+                        <div class="pet-image">🐱</div>
+                        <div class="pet-state-badge happy">행복함</div>
+                    </div>
+                </div>
+
+                <div class="pet-stats">
+                    <h3>상태</h3>
+                    <div class="stat-bars">
+                        <div class="stat-bar-container">
+                            <span class="stat-label">HP</span>
+                            <div class="stat-bar">
+                                <div id="hpBar" class="stat-bar-fill hp-bar" style="width: 100%"></div>
+                            </div>
+                            <span id="hpValue" class="stat-value">100</span>
+                        </div>
+
+                        <div class="stat-bar-container">
+                            <span class="stat-label">포만감</span>
+                            <div class="stat-bar">
+                                <div id="fullnessBar" class="stat-bar-fill fullness-bar" style="width: 80%"></div>
+                            </div>
+                            <span id="fullnessValue" class="stat-value">80</span>
+                        </div>
+
+                        <div class="stat-bar-container">
+                            <span class="stat-label">행복도</span>
+                            <div class="stat-bar">
+                                <div id="happinessBar" class="stat-bar-fill happiness-bar" style="width: 70%"></div>
+                            </div>
+                            <span id="happinessValue" class="stat-value">70</span>
+                        </div>
+
+                        <div class="stat-bar-container">
+                            <span class="stat-label">피로도</span>
+                            <div class="stat-bar">
+                                <div id="tiredBar" class="stat-bar-fill tired-bar" style="width: 30%"></div>
+                            </div>
+                            <span id="tiredValue" class="stat-value">30</span>
+                        </div>
+
+                        <div class="stat-bar-container">
+                            <span class="stat-label">목마름</span>
+                            <div class="stat-bar">
+                                <div id="thirstyBar" class="stat-bar-fill thirsty-bar" style="width: 40%"></div>
+                            </div>
+                            <span id="thirstyValue" class="stat-value">40</span>
+                        </div>
+
+                        <div class="stat-bar-container">
+                            <span class="stat-label">스트레스</span>
+                            <div class="stat-bar">
+                                <div id="stressBar" class="stat-bar-fill stress-bar" style="width: 20%"></div>
+                            </div>
+                            <span id="stressValue" class="stat-value">20</span>
+                        </div>
+                    </div>
+
+                    <div class="recommendation-box">
+                        <div class="recommendation-icon">💡</div>
+                        <p id="petRecommendation" class="recommendation-text">
+                            펫이 행복해 보입니다. 잘 돌봐주고 계세요!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pet-actions">
+                    <h3>돌보기</h3>
+                    <div class="action-buttons">
+                        <button class="action-button" data-action="feed">
+                            <span class="action-icon">🍔</span>
+                            <span class="action-label">밥 주기</span>
+                        </button>
+                        <button class="action-button" data-action="water">
+                            <span class="action-icon">💧</span>
+                            <span class="action-label">물 주기</span>
+                        </button>
+                        <button class="action-button" data-action="play">
+                            <span class="action-icon">🎮</span>
+                            <span class="action-label">놀아주기</span>
+                        </button>
+                        <button class="action-button" data-action="brush">
+                            <span class="action-icon">🧹</span>
+                            <span class="action-label">빗질하기</span>
+                        </button>
+                        <button class="action-button" data-action="sleep">
+                            <span class="action-icon">💤</span>
+                            <span class="action-label">재우기</span>
+                        </button>
+                        <button class="action-button" data-action="snack">
+                            <span class="action-icon">🍪</span>
+                            <span class="action-label">간식 주기</span>
+                        </button>
+                        <button class="action-button" data-action="walk">
+                            <span class="action-icon">🚶</span>
+                            <span class="action-label">산책하기</span>
+                        </button>
+                    </div>
+                    <p id="actionStatus" class="status-message"></p>
+                </div>
+            </div>
         </div>
-        <p id="actionStatus"></p>
     </div>
-    <script src="/js/script.js"></script>
+
+    <footer>
+        <p>&copy; 2025 PetTama - 만든이: 당신</p>
+    </footer>
 </div>
+
+<script src="/js/script.js"></script>
 </body>
 </html>
