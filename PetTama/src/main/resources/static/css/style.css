@@ -1,94 +1,214 @@
+/* Enhanced styles for the PetTama UI */
+
 body {
-    font-family: sans-serif;
-    margin: 20px;
-    background-color: #f4f4f4;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+    color: #333;
 }
 
 .container {
-    max-width: 800px;
-    margin: auto;
+    max-width: 900px;
+    margin: 20px auto;
     background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2.5em;
+    font-weight: 700;
+}
+
+h2 {
+    color: #3498db;
+    margin-bottom: 20px;
+    font-weight: 600;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 10px;
+}
+
+h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.user-section, .pet-creation, .pet-list-section, .pet-details-section, .pet-state-visualization {
+    margin-bottom: 30px;
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 }
 
-h1, h2 {
-    color: #333;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.user-section, .pet-creation, .pet-list-section, .pet-details-section {
-    margin-bottom: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+.user-section:hover, .pet-creation:hover, .pet-list-section:hover, .pet-details-section:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 label {
     display: inline-block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
 }
 
 input[type="text"], input[type="number"] {
-    padding: 8px;
+    padding: 10px 15px;
     margin-right: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
 }
 
 button {
-    padding: 8px 15px;
-    background-color: #5cb85c;
+    padding: 10px 20px;
+    background-color: #3498db;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 button:hover {
-    background-color: #4cae4c;
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 #petList {
     list-style: none;
     padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 #petList li {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+    padding: 12px 15px;
+    border-bottom: 1px solid #ecf0f1;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+}
+
+#petList li::before {
+    content: '🐾';
+    margin-right: 10px;
+    font-size: 1.2em;
 }
 
 #petList li:hover {
-    background-color: #f9f9f9;
+    background-color: #f5f8fa;
+    padding-left: 20px;
 }
 
-#petList li:last-child {
-    border-bottom: none;
+#petList li.selected {
+    background-color: #ebf5fb;
+    border-left: 4px solid #3498db;
+    font-weight: 600;
 }
 
 .pet-details-section p {
-    margin: 5px 0;
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.pet-details-section p strong {
+    color: #2c3e50;
+    margin-right: 10px;
+    display: inline-block;
+    width: 100px;
+}
+
+.pet-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
 }
 
 .pet-actions button {
-    margin-right: 10px;
-    margin-top: 10px;
-    background-color: #337ab7;
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 10px;
+    background-color: #2ecc71;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
 }
 
+.pet-actions button::before {
+    margin-bottom: 5px;
+    font-size: 20px;
+}
+
+.pet-actions button[data-action="feed"]::before { content: '🍔'; }
+.pet-actions button[data-action="play"]::before { content: '🎮'; }
+.pet-actions button[data-action="brush"]::before { content: '🧹'; }
+.pet-actions button[data-action="sleep"]::before { content: '💤'; }
+.pet-actions button[data-action="snack"]::before { content: '🍪'; }
+.pet-actions button[data-action="water"]::before { content: '💧'; }
+.pet-actions button[data-action="walk"]::before { content: '🚶'; }
+
 .pet-actions button:hover {
-    background-color: #286090;
+    background-color: #27ae60;
 }
 
 #creationStatus, #actionStatus {
-    margin-top: 10px;
-    color: green;
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
     font-style: italic;
+    transition: all 0.3s ease;
+}
+
+#creationStatus {
+    color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
+    border-left: 4px solid #2ecc71;
+}
+
+#actionStatus {
+    color: #3498db;
+    background-color: rgba(52, 152, 219, 0.1);
+    border-left: 4px solid #3498db;
+}
+
+/* Animation for actions */
+@keyframes actionSuccess {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.action-success {
+    animation: actionSuccess 0.5s ease-in-out;
 }
