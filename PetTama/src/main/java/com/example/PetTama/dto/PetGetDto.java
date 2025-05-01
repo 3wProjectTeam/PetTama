@@ -1,9 +1,6 @@
 package com.example.PetTama.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
@@ -13,6 +10,8 @@ public class PetGetDto {
     private String name;
     private int hp;
     private int fullness;
-    private int sleepiness;
     private int happiness;
+    private int tired;
+    private int thirsty;
+    private int stress;
 }

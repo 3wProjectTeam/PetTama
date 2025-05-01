@@ -6,6 +6,7 @@ import com.example.PetTama.entity.User;
 import com.example.PetTama.repository.PetRepository;
 import com.example.PetTama.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,10 +14,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Slf4j
 @Service
 public class PetService {
     private final PetRepository petRepository;
     private final UserRepository userRepository;
+
     public PetService(PetRepository petRepository, UserRepository userRepository) {
         this.petRepository = petRepository;
         this.userRepository = userRepository;
@@ -24,25 +27,13 @@ public class PetService {
 
     public List<PetGetDto> getAllPets(Long userId) {
         return petRepository.findAllByUserId(userId).stream()
-                .map(p -> new PetGetDto(
-                        p.getName(),
-                        p.getHp(),
-                        p.getFullness(),
-                        p.getSleepiness(),
-                        p.getHappiness()
-                ))
+                .map(p -> p.toDto(p))
                 .toList();
     }
 
     public PetGetDto getPet(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getSleepiness(),
-                pet.getHappiness()
-        );
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -61,31 +52,22 @@ public class PetService {
         pet.setName(name);
         pet.setHp(hp);
         pet.setFullness(fullness);
-        pet.setSleepiness(sleepiness);
+        pet.setTired(sleepiness);
         pet.setHappiness(happiness);
         pet.setLastUpdated(LocalDateTime.now());
         pet = petRepository.save(pet);
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getSleepiness(),
-                pet.getHappiness()
-        );
+        return pet.toDto(pet);
     }
 
     @Transactional
     public PetGetDto feed(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
+        log.info("Before Feed Pet: {}", pet.getFullness());
         pet.setFullness(pet.getFullness() + 20);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getSleepiness(),
-                pet.getHappiness()
-        );
+        pet = petRepository.save(pet);
+        log.info("After Feed Pet: {}", pet.getFullness());
+        return pet.toDto(pet);
     }
 
     @Transactional
@@ -93,51 +75,40 @@ public class PetService {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         pet.setHappiness(pet.getHappiness() + 15);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getSleepiness(),
-                pet.getHappiness()
-        );
+        return pet.toDto(pet);
     }
+
     @Transactional
     public PetGetDto brush(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         pet.setHappiness(pet.getHappiness() + 15);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getSleepiness(),
-                pet.getHappiness()
-        );
+        return pet.toDto(pet);
     }
+
     @Transactional
     public PetGetDto sleep(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
-        pet.setSleepiness(pet.getSleepiness() - 20);
+        pet.setTired(pet.getTired() - 20);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getSleepiness(),
-                pet.getHappiness()
-        );
+        return pet.toDto(pet);
     }
+
     @Transactional
     public PetGetDto snack(Long userId, Long petId) {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         pet.setFullness(pet.getFullness() + 5);
         pet.setLastUpdated(LocalDateTime.now());
-        return new PetGetDto(
-                pet.getName(),
-                pet.getHp(),
-                pet.getFullness(),
-                pet.getSleepiness(),
-                pet.getHappiness()
-        );
+        return pet.toDto(pet);
+    }
+
+    @Transactional
+    public PetGetDto petWalking(Long userId, Long petId) {
+        Pet pet = petRepository.findByIdAndUserId(petId, userId);
+        pet.setHappiness(pet.getHappiness() + 5);
+        pet.setFullness(pet.getFullness() - 15);
+        pet.setTired(pet.getTired() + 15);
+        pet.setLastUpdated(LocalDateTime.now());
+        return pet.toDto(pet);
     }
 }
