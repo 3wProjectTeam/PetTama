@@ -33,66 +33,56 @@ public class PetFSM {
     private static final int HIGH_THRESHOLD = 80;
     private static final int MAX_VALUE = 100;
     
-    // Time decay constants (how much stats decrease per hour)
+    // 시간당 줄어드는 수치
     private static final int FULLNESS_DECAY_PER_HOUR = 5;
     private static final int HAPPINESS_DECAY_PER_HOUR = 3;
     private static final int THIRST_INCREASE_PER_HOUR = 4;
     private static final int STRESS_INCREASE_PER_HOUR = 2;
     private static final int TIRED_INCREASE_PER_HOUR = 3;
-    
-    // How stats affect HP
+
     private static final int HP_LOSS_CRITICAL = 5;
     private static final int HP_GAIN_OPTIMAL = 2;
 
     /**
-     * Updates a pet's stats based on time passed since last update
-     * @param pet The pet to update
-     * @return The updated pet with new stats
+     * 마지막 업데이트 시간을 기준으로 얼마나 지났는지에 따라 pet의 스탯을 업데이트 합니다
+     * @param pet pet for updating
+     * @return updated pet
      */
     public static Pet updatePetStatus(Pet pet) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime lastUpdated = pet.getLastUpdated();
-        
-        // Calculate hours passed since last update
+        // 마지막 업데이트 이후 경과된 시간을 기준으로 Pet의 상태를 업데이트합니다.
         long hoursPassed = Duration.between(lastUpdated, now).toHours();
-        
-        // If less than 1 hour passed, don't update
+        // 1시간 미만이면 update 하지 않음.
         if (hoursPassed < 1) return pet;
-        
         log.info("Updating pet {} status after {} hours", pet.getName(), hoursPassed);
-        
-        // Apply time decay to stats
+        // 스텟 감소 수치
         int newFullness = Math.max(0, pet.getFullness() - (int)(FULLNESS_DECAY_PER_HOUR * hoursPassed));
         int newHappiness = Math.max(0, pet.getHappiness() - (int)(HAPPINESS_DECAY_PER_HOUR * hoursPassed));
         int newThirsty = Math.min(MAX_VALUE, pet.getThirsty() + (int)(THIRST_INCREASE_PER_HOUR * hoursPassed));
         int newStress = Math.min(MAX_VALUE, pet.getStress() + (int)(STRESS_INCREASE_PER_HOUR * hoursPassed));
         int newTired = Math.min(MAX_VALUE, pet.getTired() + (int)(TIRED_INCREASE_PER_HOUR * hoursPassed));
-        
-        // Apply stat changes
+        // state 변경 적용
         pet.setFullness(newFullness);
         pet.setHappiness(newHappiness);
         pet.setThirsty(newThirsty);
         pet.setStress(newStress);
         pet.setTired(newTired);
-        
-        // Update HP based on overall condition
+        // Update Pet
         updateHP(pet);
-        
-        // Update the last updated timestamp
+        // set LastUpdate
         pet.setLastUpdated(now);
-        
         return pet;
     }
     
     /**
-     * Determines the current state of the pet based on its stats
-     * @param pet The pet to check
-     * @return The current PetState
+     * 반려동물의 상태수치를 기반으로 현재 상태를 결정.
+     * @param pet stat 확인한다.
+     * @return 현재 Pet stat
      */
     public static PetState getCurrentState(Pet pet) {
-        // Get all current states
+        // 모든 pet stat을 List로 받아옴
         List<PetState> states = getPetStates(pet);
-        
         // Prioritize the most critical states
         if (states.contains(PetState.CRITICAL)) return PetState.CRITICAL;
         if (states.contains(PetState.SICK)) return PetState.SICK;
@@ -101,7 +91,6 @@ public class PetFSM {
         if (states.contains(PetState.TIRED)) return PetState.TIRED;
         if (states.contains(PetState.STRESSED)) return PetState.STRESSED;
         if (states.contains(PetState.BORED)) return PetState.BORED;
-        
         // Default state if no other conditions are met
         return PetState.HAPPY;
     }
