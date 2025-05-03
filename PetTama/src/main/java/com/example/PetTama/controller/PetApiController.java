@@ -30,8 +30,12 @@ public class PetApiController {
     }
 
     @PostMapping("{userId}")
-    public ResponseEntity<PetGetDto> createPet(@PathVariable Long userId, @RequestParam String name) {
-        PetGetDto dto = petSer.createPet(userId, name);
+    public ResponseEntity<PetGetDto> createPet(
+            @PathVariable Long userId,
+            @RequestParam String name,
+            @RequestParam(required = false, defaultValue = "CAT") String petType) {
+
+        PetGetDto dto = petSer.createPet(userId, name, petType);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 

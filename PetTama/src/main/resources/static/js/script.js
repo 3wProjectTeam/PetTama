@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const actionStatusP = document.getElementById('actionStatus');
     const actionButtons = document.querySelectorAll('.action-button');
     const petDetailName = document.getElementById('petDetailName');
+    const petTypeOptions = document.querySelectorAll('.pet-type-option');
 
     // 스탯 관련 요소
     const statBars = {
@@ -44,18 +45,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentUserId = null;
     let currentPetId = null;
     let petsData = [];
+    let selectedPetType = "DOG"; // 기본 선택 펫 타입
 
     // 펫 이모지 매핑
     const petEmojis = {
-        'default': '🐱',
-        'dog': '🐶',
-        'cat': '🐱',
-        'rabbit': '🐰',
-        'hamster': '🐹',
-        'bird': '🐦',
-        'fish': '🐠',
-        'turtle': '🐢',
-        'unicorn': '🦄'
+        'DOG': '🐶',
+        'CAT': '🐱',
+        'default': '🐱'
     };
 
     // 상태 이모지 매핑
@@ -154,6 +150,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 추가 필드가 없는 경우 id 필드 추가 (API 수정 전까지 임시 조치)
             petsData = pets.map(function(pet, index) {
+                // petType이 없는 경우 기본값 설정
+                if (!pet.petType) {
+                    pet.petType = 'CAT';
+                }
+
                 return {
                     ...pet,
                     id: pet.id || index + 1 // id가 없으면 인덱스로 대체
@@ -180,6 +181,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // id 추가 (필요한 경우)
             if (!pet.id) {
                 pet.id = petId;
+            }
+
+            // petType이 없는 경우 기본값 설정
+            if (!pet.petType) {
+                pet.petType = 'CAT';
             }
 
             // 펫 상세 정보 표시
@@ -212,7 +218,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         pets.forEach(function(pet) {
             const li = document.createElement('li');
-            li.textContent = pet.name;
+            // 펫 타입에 따른 이모지 표시
+            const petEmoji = petEmojis[pet.petType] || petEmojis.default;
+            li.textContent = `${petEmoji} ${pet.name}`;
             li.dataset.petId = pet.id;
 
             // 펫 클릭 시 상세 정보 표시
@@ -309,13 +317,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const state = pet.state || determineState(pet);
         const recommendation = pet.recommendation || getDefaultRecommendation(state);
 
+        // 펫 타입에 맞는 이모지 가져오기
+        const petTypeEmoji = petEmojis[pet.petType] || petEmojis.default;
+
         // 상태 뱃지 업데이트
         petStateBadge.textContent = stateNames[state] || '정상';
         petStateBadge.className = 'pet-state-badge'; // 기존 클래스 초기화
         petStateBadge.classList.add(state.toLowerCase());
 
-        // 펫 이미지 업데이트
-        petImage.textContent = stateEmojis[state] || petEmojis.default;
+        // 펫 이미지 업데이트 (상태 이모지와 펫 타입 이모지 조합)
+        // 상태가 심각할 때는 상태 이모지, 그렇지 않으면 펫 타입 이모지
+        if (state === 'CRITICAL' || state === 'SICK') {
+            petImage.textContent = stateEmojis[state];
+        } else {
+            petImage.textContent = petTypeEmoji;
+        }
 
         // 추천 메시지 업데이트
         petRecommendation.textContent = recommendation;
@@ -372,13 +388,14 @@ document.addEventListener('DOMContentLoaded', function() {
      * 펫 생성
      * @param {number} userId - 사용자 ID
      * @param {string} name - 펫 이름
+     * @param {string} petType - 펫 타입
      */
-    async function createPet(userId, name) {
+    async function createPet(userId, name, petType) {
         try {
             showStatusMessage(creationStatusP, '펫 생성 중...', 'info');
 
             const newPet = await fetchWithErrorHandling(
-                API_BASE_URL + "/" + userId + "?name=" + encodeURIComponent(name),
+                API_BASE_URL + "/" + userId + "?name=" + encodeURIComponent(name) + "&petType=" + encodeURIComponent(petType),
                 { method: 'POST' }
             );
 
@@ -420,6 +437,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // 펫 정보 업데이트
             if (!updatedPet.id) {
                 updatedPet.id = petId;
+            }
+
+            // petType이 없는 경우 기존 데이터에서 가져오기
+            if (!updatedPet.petType) {
+                const existingPet = petsData.find(p => p.id === petId);
+                updatedPet.petType = existingPet ? existingPet.petType : 'CAT';
             }
 
             displayPetDetails(updatedPet);
@@ -467,6 +490,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // === 이벤트 리스너 설정 ===
 
+    // 펫 타입 선택 이벤트
+    petTypeOptions.forEach(function(option) {
+        option.addEventListener('click', function() {
+            // 기존 선택 해제
+            petTypeOptions.forEach(opt => opt.classList.remove('selected'));
+
+            // 새로운 선택 적용
+            this.classList.add('selected');
+
+            // 선택된 펫 타입 저장
+            selectedPetType = this.dataset.petType;
+        });
+    });
+
     // 펫 목록 불러오기 버튼
     loadPetsButton.addEventListener('click', function() {
         const userId = parseInt(userIdInput.value, 10);
@@ -489,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (!petName) {
             showStatusMessage(creationStatusP, '펫 이름을 입력하세요.', 'error');
         } else {
-            createPet(userId, petName);
+            createPet(userId, petName, selectedPetType);
         }
     });
 

@@ -193,7 +193,7 @@
 
       // 성공 메시지의 경우 자동으로 사라지도록 함
       if (type === 'success') {
-        setTimeout(function () {
+        setTimeout(function() {
           statusMessage.textContent = '';
           statusMessage.className = 'status-message';
         }, 3000);
@@ -255,7 +255,7 @@
         showStatusMessage('게시글이 성공적으로 작성되었습니다.', 'success');
 
         // 잠시 후 상세 페이지로 이동
-        setTimeout(function () {
+        setTimeout(function() {
           window.location.href = `/board/${createdPost.id}`;
         }, 1000);
       } catch (error) {
@@ -283,7 +283,7 @@
         showStatusMessage('게시글이 성공적으로 수정되었습니다.', 'success');
 
         // 잠시 후 상세 페이지로 이동
-        setTimeout(function () {
+        setTimeout(function() {
           window.location.href = `/board/${updatedPost.id}`;
         }, 1000);
       } catch (error) {
@@ -293,7 +293,7 @@
     }
 
     // 폼 제출 처리
-    postForm.addEventListener('submit', function (e) {
+    postForm.addEventListener('submit', function(e) {
       e.preventDefault();
 
       // 입력값 가져오기
@@ -341,7 +341,7 @@
     });
 
     // 취소 버튼 클릭 처리
-    cancelButton.addEventListener('click', function () {
+    cancelButton.addEventListener('click', function() {
       // 수정 모드인 경우 상세 페이지로, 생성 모드인 경우 목록 페이지로 이동
       if (isEditMode) {
         window.location.href = `/board/${postId}`;
@@ -349,7 +349,7 @@
         window.location.href = '/board';
       }
     });
+
     // 초기화
-    initialize();
-  });
+    initialize()});
 </script>

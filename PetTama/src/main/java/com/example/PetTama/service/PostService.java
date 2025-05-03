@@ -19,14 +19,14 @@ public class PostService {
         this.postRepository = postRepository;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<PostDto> getAllPosts() {
         return postRepository.findAll().stream()
                 .map(PostDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PostDto getPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Post not found with id: " + postId));
