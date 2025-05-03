@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetTama - 게시글 작성/수정</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .form-container {
+      background-color: var(--background-light);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color var(--transition-fast);
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    textarea {
+      min-height: 200px;
+      resize: vertical;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+
+    .secondary-btn {
+      background-color: var(--background-gray);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .secondary-btn:hover {
+      background-color: var(--border-color);
+    }
+
+    .navigation-link {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .navigation-button {
+      display: inline-block;
+      margin-right: 0.5rem;
+      padding: 0.5rem 1rem;
+      color: var(--text-primary);
+      background-color: var(--background-gray);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: background-color var(--transition-fast);
+    }
+
+    .navigation-button:hover {
+      background-color: var(--border-color);
+    }
+
+    .status-message {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      display: none;
+    }
+
+    .status-message.success {
+      background-color: var(--success-color);
+      color: white;
+      display: block;
+    }
+
+    .status-message.error {
+      background-color: var(--danger-color);
+      color: white;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>PetTama</h1>
+    <p class="subtitle">반려동물 커뮤니티</p>
+    <div class="navigation">
+      <a href="/home" class="navigation-button">홈으로</a>
+      <a href="/board" class="navigation-button">게시판</a>
+    </div>
+  </header>
+
+  <div class="form-container">
+    <div class="form-header">
+      <h2 id="formTitle">게시글 작성</h2>
+    </div>
+
+    <form id="postForm">
+      <div class="input-group">
+        <label for="postTitle">제목</label>
+        <input type="text" id="postTitle" name="title" placeholder="제목을 입력하세요" required>
+      </div>
+
+      <div class="input-group">
+        <label for="postNickname">닉네임</label>
+        <input type="text" id="postNickname" name="nickname" placeholder="닉네임을 입력하세요" required>
+      </div>
+
+      <div class="input-group">
+        <label for="postContent">내용</label>
+        <textarea id="postContent" name="content" placeholder="내용을 입력하세요" required></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" id="cancelButton" class="secondary-btn">취소</button>
+        <button type="submit" id="submitButton" class="primary-btn">저장</button>
+      </div>
+    </form>
+
+    <p id="statusMessage" class="status-message"></p>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // DOM 요소
+    const formTitle = document.getElementById('formTitle');
+    const postForm = document.getElementById('postForm');
+    const postTitleInput = document.getElementById('postTitle');
+    const postNicknameInput = document.getElementById('postNickname');
+    const postContentInput = document.getElementById('postContent');
+    const cancelButton = document.getElementById('cancelButton');
+    const submitButton = document.getElementById('submitButton');
+    const statusMessage = document.getElementById('statusMessage');
+
+    // 상태 변수
+    let isEditMode = false;
+    let postId = null;
+
+    // URL에서 게시글 ID 추출 (수정 모드인 경우)
+    function getPostIdFromUrl() {
+      const pathParts = window.location.pathname.split('/');
+
+      // URL이 /board/edit/{id} 패턴인 경우 수정 모드
+      if (pathParts.length >= 3 && pathParts[pathParts.length - 2] === 'edit') {
+        return pathParts[pathParts.length - 1];
+      }
+
+      return null;
+    }
+
+    // 상태 메시지 표시
+    function showStatusMessage(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = 'status-message';
+
+      if (type) {
+        statusMessage.classList.add(type);
+      }
+
+      // 성공 메시지의 경우 자동으로 사라지도록 함
+      if (type === 'success') {
+        setTimeout(function() {
+          statusMessage.textContent = '';
+          statusMessage.className = 'status-message';
+        }, 3000);
+      }
+    }
+
+    // 초기화 함수
+    function initialize() {
+      // URL을 확인해 모드(생성/수정) 결정
+      postId = getPostIdFromUrl();
+      isEditMode = !!postId;
+
+      if (isEditMode) {
+        // 수정 모드일 경우 기존 게시글 데이터 불러오기
+        formTitle.textContent = '게시글 수정';
+        loadPostData(postId);
+      } else {
+        // 생성 모드일 경우 빈 폼 표시
+        formTitle.textContent = '게시글 작성';
+      }
+    }
+
+    // 게시글 데이터 불러오기 (수정 모드)
+    async function loadPostData(postId) {
+      try {
+        const response = await fetch(`/api/posts/${postId}`);
+        if (!response.ok) {
+          throw new Error('게시글을 불러오는데 실패했습니다.');
+        }
+
+        const post = await response.json();
+
+        // 폼에 값 채우기
+        postTitleInput.value = post.title;
+        postNicknameInput.value = post.nickname;
+        postContentInput.value = post.content;
+      } catch (error) {
+        console.error('Error loading post data:', error);
+        showStatusMessage('게시글을 불러오는데 실패했습니다: ' + error.message, 'error');
+      }
+    }
+
+    // 게시글 생성
+    async function createPost(postData) {
+      try {
+        const response = await fetch('/api/posts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(postData)
+        });
+
+        if (!response.ok) {
+          throw new Error('게시글 작성에 실패했습니다.');
+        }
+
+        const createdPost = await response.json();
+        showStatusMessage('게시글이 성공적으로 작성되었습니다.', 'success');
+
+        // 잠시 후 상세 페이지로 이동
+        setTimeout(function() {
+          window.location.href = `/board/${createdPost.id}`;
+        }, 1000);
+      } catch (error) {
+        console.error('Error creating post:', error);
+        showStatusMessage('게시글 작성 오류: ' + error.message, 'error');
+      }
+    }
+
+    // 게시글 수정
+    async function updatePost(postId, postData) {
+      try {
+        const response = await fetch(`/api/posts/${postId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(postData)
+        });
+
+        if (!response.ok) {
+          throw new Error('게시글 수정에 실패했습니다.');
+        }
+
+        const updatedPost = await response.json();
+        showStatusMessage('게시글이 성공적으로 수정되었습니다.', 'success');
+
+        // 잠시 후 상세 페이지로 이동
+        setTimeout(function() {
+          window.location.href = `/board/${updatedPost.id}`;
+        }, 1000);
+      } catch (error) {
+        console.error('Error updating post:', error);
+        showStatusMessage('게시글 수정 오류: ' + error.message, 'error');
+      }
+    }
+
+    // 폼 제출 처리
+    postForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // 입력값 가져오기
+      const title = postTitleInput.value.trim();
+      const nickname = postNicknameInput.value.trim();
+      const content = postContentInput.value.trim();
+
+      // 입력값 검증
+      if (!title) {
+        showStatusMessage('제목을 입력해주세요.', 'error');
+        postTitleInput.focus();
+        return;
+      }
+
+      if (!nickname) {
+        showStatusMessage('닉네임을 입력해주세요.', 'error');
+        postNicknameInput.focus();
+        return;
+      }
+
+      if (!content) {
+        showStatusMessage('내용을 입력해주세요.', 'error');
+        postContentInput.focus();
+        return;
+      }
+
+      // 게시글 데이터 생성
+      const postData = {
+        title,
+        nickname,
+        content
+      };
+
+      // 수정 모드인 경우 게시글 ID 포함
+      if (isEditMode) {
+        postData.id = postId;
+      }
+
+      // API 호출
+      if (isEditMode) {
+        updatePost(postId, postData);
+      } else {
+        createPost(postData);
+      }
+    });
+
+    // 취소 버튼 클릭 처리
+    cancelButton.addEventListener('click', function() {
+      // 수정 모드인 경우 상세 페이지로, 생성 모드인 경우 목록 페이지로 이동
+      if (isEditMode) {
+        window.location.href = `/board/${postId}`;
+      } else {
+        window.location.href = '/board';
+      }
+    });
+
+    // 초기화
+    initialize()});
+</script>
