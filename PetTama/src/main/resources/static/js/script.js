@@ -549,4 +549,9 @@ document.addEventListener('DOMContentLoaded', function() {
         currentUserId = initialUserId;
         fetchPets(currentUserId);
     }
+    const userProfileLink = document.getElementById('userProfileLink');
+    if (userProfileLink) {
+        userProfileLink.href = `/users/${currentUserId}`;
+        userProfileLink.style.display = 'inline-block';
+    }
 });

@@ -6,6 +6,44 @@
     <title>PetTama - 가상 반려동물</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* 펫 타입 선택기 스타일 */
+        .pet-type-selector {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .pet-type-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            border: 2px solid transparent;
+        }
+
+        .pet-type-option:hover {
+            background-color: var(--primary-light);
+        }
+
+        .pet-type-option.selected {
+            border-color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+
+        .pet-type-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pet-type-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
@@ -28,6 +66,21 @@
                     <label for="petNameInput">펫 이름:</label>
                     <input type="text" id="petNameInput" placeholder="이름을 입력하세요">
                 </div>
+
+                <div class="input-group">
+                    <label>펫 종류 선택:</label>
+                    <div class="pet-type-selector">
+                        <div class="pet-type-option selected" data-pet-type="DOG">
+                            <div class="pet-type-icon">🐶</div>
+                            <div class="pet-type-label">강아지</div>
+                        </div>
+                        <div class="pet-type-option" data-pet-type="CAT">
+                            <div class="pet-type-icon">🐱</div>
+                            <div class="pet-type-label">고양이</div>
+                        </div>
+                    </div>
+                </div>
+
                 <button id="createPetButton" class="primary-btn">만들기</button>
                 <p id="creationStatus" class="status-message"></p>
             </div>
@@ -147,7 +200,13 @@
             </div>
         </div>
     </div>
-
+    <div class="navigation">
+        <a href="/home" class="navigation-button">홈으로</a>
+        <a href="/board" class="navigation-button">게시판</a>
+        <a href="/users/register" class="navigation-button">사용자 등록</a>
+        <!-- Add this button after loading a user's pets -->
+        <a id="userProfileLink" class="navigation-button" style="display: none;">프로필</a>
+    </div>
     <footer>
         <p>&copy; 2025 PetTama - 만든이: 당신</p>
     </footer>

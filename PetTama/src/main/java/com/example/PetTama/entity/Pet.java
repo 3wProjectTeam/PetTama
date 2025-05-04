@@ -23,7 +23,7 @@ public class Pet {
     private String name;
 
     @Column(name = "pet_type")
-    private String petType;  // 새로 추가된 필드: "DOG", "CAT", "RABBIT", "HAMSTER" 등
+    private String petType;  // 새로 추가된 필드: "DOG", "CAT"
 
     @Column(name = "hp")
     private int hp;
