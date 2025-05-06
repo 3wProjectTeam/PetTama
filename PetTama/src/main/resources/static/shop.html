@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetTama - 애완용품 상점</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .shop-container {
+            background-color: var(--background-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-button:hover:not(.active) {
+            color: var(--text-primary);
+            border-bottom-color: var(--border-color);
+        }
+
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .item-card {
+            background-color: var(--background-gray);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .item-image {
+            height: 120px;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .item-details {
+            padding: 1rem;
+        }
+
+        .item-name {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .item-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            height: 2.5rem;
+            overflow: hidden;
+        }
+
+        .item-price {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .item-effects {
+            font-size: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .effect-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .buy-button {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color var(--transition-fast);
+        }
+
+        .buy-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .inventory-section {
+            margin-top: 2rem;
+        }
+
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .inventory-list {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .inventory-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .inventory-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        .item-info {
+            flex-grow: 1;
+        }
+
+        .item-quantity {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            font-weight: 700;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            margin-right: 1rem;
+        }
+
+        .use-button {
+            padding: 0.35rem 0.75rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color var(--transition-fast);
+        }
+
+        .use-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .empty-message {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .status-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            display: none;
+        }
+
+        .status-message.success {
+            background-color: var(--success-color);
+            color: white;
+            display: block;
+        }
+
+        .status-message.error {
+            background-color: var(--danger-color);
+            color: white;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>PetTama</h1>
+        <p class="subtitle">애완용품 상점</p>
+        <div class="navigation">
+            <a href="/home" class="navigation-button">홈으로</a>
+            <a href="/board" class="navigation-button">게시판</a>
+            <a href="/shop" class="navigation-button">상점</a>
+        </div>
+    </header>
+
+    <div class="shop-container">
+        <div class="shop-header">
+            <h2>상점</h2>
+            <div class="user-info">
+                <label for="userIdInput">사용자 ID:</label>
+                <input type="number" id="userIdInput" value="1" style="width: 60px; margin-right: 10px;">
+                <button id="loadUserButton" class="primary-btn">정보 불러오기</button>
+            </div>
+        </div>
+
+        <div class="tab-container" id="itemTypeTabs">
+            <button class="tab-button active" data-type="all">전체</button>
+            <button class="tab-button" data-type="FOOD">사료</button>
+            <button class="tab-button" data-type="DRINK">물/음료</button>
+            <button class="tab-button" data-type="TOY">장난감</button>
+            <button class="tab-button" data-type="GROOMING">그루밍</button>
+            <button class="tab-button" data-type="MEDICINE">약/건강</button>
+            <button class="tab-button" data-type="ACCESSORY">액세서리</button>
+        </div>
+
+        <div id="itemsGrid" class="item-grid">
+            <!-- 아이템들이 여기에 동적으로 로드됩니다 -->
+            <div class="loading">상품을 불러오는 중...</div>
+        </div>
+
+        <p id="shopStatusMessage" class="status-message"></p>
+
+        <div class="inventory-section">
+            <div class="inventory-header">
+                <h3>내 인벤토리</h3>
+                <div>
+                    <label for="petSelector">펫 선택:</label>
+                    <select id="petSelector">
+                        <option value="">펫을 선택하세요</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="inventoryList" class="inventory-list">
+                <!-- 인벤토리 아이템들이 여기에 동적으로 로드됩니다 -->
+                <div class="empty-message">인벤토리를 불러오는 중...</div>
+            </div>
+
+            <p id="inventoryStatusMessage" class="status-message"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // DOM 요소
+        const userIdInput = document.getElementById('userIdInput');
+        const loadUserButton = document.getElementById('loadUserButton');
+        const itemTypeTabs = document.getElementById('itemTypeTabs');
+        const itemsGrid = document.getElementById('itemsGrid');
+        const petSelector = document.getElementById('petSelector');
+        const inventoryList = document.getElementById('inventoryList');
+        const shopStatusMessage = document.getElementById('shopStatusMessage');
+        const inventoryStatusMessage = document.getElementById('inventoryStatusMessage');
+
+        // 상태 변수
+        let currentUserId = null;
+        let currentPetId = null;
+        let currentItemType = 'all';
+        let allItems = [];
+        let userItems = [];
+        let userPets = [];
+
+        // 아이템 타입별 아이콘
+        const itemTypeIcons = {
+            'FOOD': '🍗',
+            'DRINK': '💧',
+            'TOY': '🎮',
+            'GROOMING': '🧹',
+            'MEDICINE': '💊',
+            'ACCESSORY': '🧣',
+            'default': '📦'
+        };
+
+        // 상태 효과 이름
+        const effectNames = {
+            'happinessEffect': '행복도',
+            'fullnessEffect': '포만감',
+            'hydrationEffect': '수분 개선',
+            'energyEffect': '에너지 회복',
+            'stressReduction': '스트레스 감소'
+        };
+
+        // 인벤토리 섹션 초기 메시지
+        inventoryList.innerHTML = '<div class="empty-message">사용자 정보를 불러와 주세요.</div>';
+
+        // 페이지 로드 시 바로 상품 정보를 로드
+        loadAllItems();
+
+        // 모든 상품 로드
+        async function loadAllItems() {
+            // 로딩 메시지 표시
+            itemsGrid.innerHTML = '<div class="empty-message">상품을 불러오는 중...</div>';
+
+            try {
+                const itemsResponse = await fetch('/api/items');
+                if (!itemsResponse.ok) {
+                    throw new Error('상품을 불러오는데 실패했습니다.');
+                }
+
+                allItems = await itemsResponse.json();
+                displayItems(allItems);
+
+            } catch (error) {
+                console.error('Error loading items:', error);
+                itemsGrid.innerHTML = '<div class="empty-message">상품을 불러오는데 실패했습니다.</div>';
+            }
+        }
+
+        // 유저 정보 로드
+        async function loadUserData() {
+            const userId = parseInt(userIdInput.value, 10);
+            if (!userId) {
+                showStatusMessage(shopStatusMessage, '유효한 사용자 ID를 입력하세요.', 'error');
+                return;
+            }
+
+            currentUserId = userId;
+
+            // 인벤토리 로딩 메시지 표시
+            inventoryList.innerHTML = '<div class="empty-message">인벤토리를 불러오는 중...</div>';
+
+            try {
+                // 사용자의 펫 목록 로드
+                await loadUserPets(userId);
+
+                // 사용자의 인벤토리 로드
+                await loadUserInventory(userId);
+
+                showStatusMessage(shopStatusMessage, '사용자 정보를 불러왔습니다.', 'success');
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showStatusMessage(shopStatusMessage, error.message, 'error');
+                inventoryList.innerHTML = '<div class="empty-message">인벤토리를 불러오는데 실패했습니다.</div>';
+            }
+        }
+
+        // 사용자의 펫 목록 로드
+        async function loadUserPets(userId) {
+            try {
+                const petsResponse = await fetch(`/api/user-nums/${userId}`);
+                if (!petsResponse.ok) {
+                    throw new Error('펫 목록을 불러오는데 실패했습니다.');
+                }
+
+                userPets = await petsResponse.json();
+
+                // 펫 선택기 업데이트
+                updatePetSelector();
+            } catch (error) {
+                console.error('Error loading pets:', error);
+                showStatusMessage(inventoryStatusMessage, error.message, 'error');
+            }
+        }
+
+        // 사용자의 인벤토리 로드
+        async function loadUserInventory(userId) {
+            try {
+                const inventoryResponse = await fetch(`/api/items/user/${userId}`);
+                if (!inventoryResponse.ok) {
+                    throw new Error('인벤토리를 불러오는데 실패했습니다.');
+                }
+
+                userItems = await inventoryResponse.json();
+                displayInventory();
+            } catch (error) {
+                console.error('Error loading inventory:', error);
+                showStatusMessage(inventoryStatusMessage, error.message, 'error');
+            }
+        }
+
+        // 펫 선택기 업데이트
+        function updatePetSelector() {
+            petSelector.innerHTML = '<option value="">펫을 선택하세요</option>';
+
+            userPets.forEach(pet => {
+                const option = document.createElement('option');
+                option.value = pet.id;
+                option.textContent = `${pet.name} (상태: ${getStateSummary(pet)})`;
+                petSelector.appendChild(option);
+            });
+
+            // 이벤트 리스너 추가
+            petSelector.addEventListener('change', function() {
+                currentPetId = this.value ? parseInt(this.value, 10) : null;
+
+                // 인벤토리 UI 업데이트 (아이템 사용 버튼 활성화/비활성화)
+                const useButtons = document.querySelectorAll('.use-button');
+                useButtons.forEach(button => {
+                    button.disabled = !currentPetId;
+                    if (!currentPetId) {
+                        button.style.opacity = 0.5;
+                        button.style.cursor = 'not-allowed';
+                    } else {
+                        button.style.opacity = 1;
+                        button.style.cursor = 'pointer';
+                    }
+                });
+            });
+        }
+
+        // 아이템 표시
+        function displayItems(items) {
+            if (items.length === 0) {
+                itemsGrid.innerHTML = '<div class="empty-message">상품이 없습니다.</div>';
+                return;
+            }
+
+            // 현재 탭에 맞는 아이템만 필터링
+            let filteredItems = items;
+            if (currentItemType !== 'all') {
+                filteredItems = items.filter(item => item.itemType === currentItemType);
+
+                if (filteredItems.length === 0) {
+                    itemsGrid.innerHTML = '<div class="empty-message">이 카테고리에 상품이 없습니다.</div>';
+                    return;
+                }
+            }
+
+            const itemsHtml = filteredItems.map(item => {
+                // 효과가 있는 속성만 추출
+                const effects = [];
+                Object.keys(effectNames).forEach(key => {
+                    if (item[key] > 0) {
+                        effects.push({ name: effectNames[key], value: item[key] });
+                    }
+                });
+
+                // 아이템 카드 HTML 생성
+                return `
+        <div class="item-card" data-item-id="${item.id}">
+          <div class="item-image">
+            ${itemTypeIcons[item.itemType] || itemTypeIcons.default}
+          </div>
+          <div class="item-details">
+            <div class="item-name">${item.name}</div>
+            <div class="item-description">${item.description}</div>
+            <div class="item-price">${item.price.toLocaleString()}원</div>
+            <div class="item-effects">
+              ${effects.map(effect => `
+                <div class="effect-item">
+                  <span>${effect.name}</span>
+                  <span>+${effect.value}</span>
+                </div>
+              `).join('')}
+            </div>
+            <button class="buy-button" data-item-id="${item.id}">구매하기</button>
+          </div>
+        </div>
+      `;
+            }).join('');
+
+            itemsGrid.innerHTML = itemsHtml;
+
+            // 구매 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.buy-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!currentUserId) {
+                        showStatusMessage(shopStatusMessage, '먼저 사용자 정보를 불러오세요.', 'error');
+                        return;
+                    }
+
+                    const itemId = parseInt(this.dataset.itemId, 10);
+                    purchaseItem(currentUserId, itemId);
+                });
+            });
+        }
+
+        // 인벤토리 표시
+        function displayInventory() {
+            if (userItems.length === 0) {
+                inventoryList.innerHTML = '<div class="empty-message">인벤토리가 비어 있습니다.</div>';
+                return;
+            }
+
+            const inventoryHtml = userItems.map(userItem => {
+                const item = userItem.item;
+
+                return `
+        <div class="inventory-item">
+          <div class="item-icon">
+            ${itemTypeIcons[item.itemType] || itemTypeIcons.default}
+          </div>
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-description">${item.description}</div>
+          </div>
+          <div class="item-quantity">
+            ${userItem.quantity}개
+          </div>
+          <button class="use-button" data-item-id="${item.id}" ${!currentPetId ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+            사용하기
+          </button>
+        </div>
+      `;
+            }).join('');
+
+            inventoryList.innerHTML = inventoryHtml;
+
+            // 사용 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.use-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!currentUserId || !currentPetId) {
+                        showStatusMessage(inventoryStatusMessage, '펫을 선택해주세요.', 'error');
+                        return;
+                    }
+
+                    const itemId = parseInt(this.dataset.itemId, 10);
+                    useItem(currentUserId, currentPetId, itemId);
+                });
+            });
+        }
+
+        // 아이템 구매
+        async function purchaseItem(userId, itemId) {
+            try {
+                const response = await fetch(`/api/items/purchase/${userId}/${itemId}?quantity=1`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('아이템 구매에 실패했습니다.');
+                }
+
+                const purchasedItem = await response.json();
+                showStatusMessage(shopStatusMessage, '아이템을 구매했습니다!', 'success');
+
+                // 인벤토리 새로고침
+                await loadUserInventory(userId);
+            } catch (error) {
+                console.error('Error purchasing item:', error);
+                showStatusMessage(shopStatusMessage, error.message, 'error');
+            }
+        }
+
+        // 아이템 사용
+        async function useItem(userId, petId, itemId) {
+            try {
+                const response = await fetch(`/api/items/use/${userId}/${petId}/${itemId}`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('아이템 사용에 실패했습니다.');
+                }
+
+                const updatedPet = await response.json();
+                showStatusMessage(inventoryStatusMessage, '아이템을 사용했습니다!', 'success');
+
+                // 인벤토리 및 펫 목록 새로고침
+                await loadUserInventory(userId);
+                await loadUserPets(userId);
+            } catch (error) {
+                console.error('Error using item:', error);
+                showStatusMessage(inventoryStatusMessage, error.message, 'error');
+            }
+        }
+
+        // 펫 상태 요약
+        function getStateSummary(pet) {
+            if (pet.hp < 20) {
+                return '위험';
+            } else if (pet.fullness < 20 || pet.thirsty > 80 || pet.tired > 80 || pet.stress > 80) {
+                return '주의';
+            } else if (pet.happiness > 70) {
+                return '행복';
+            } else {
+                return '보통';
+            }
+        }
+
+        // 상태 메시지 표시
+        function showStatusMessage(element, message, type) {
+            element.textContent = message;
+            element.className = 'status-message';
+
+            if (type) {
+                element.classList.add(type);
+            }
+
+            // 3초 후 메시지 숨기기
+            setTimeout(() => {
+                element.textContent = '';
+                element.className = 'status-message';
+            }, 3000);
+        }
+
+        // 탭 클릭 이벤트 리스너
+        itemTypeTabs.addEventListener('click', event => {
+            if (event.target.classList.contains('tab-button')) {
+                // 모든 탭에서 active 클래스 제거
+                document.querySelectorAll('.tab-button').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+
+                // 클릭된 탭에 active 클래스 추가
+                event.target.classList.add('active');
+
+                // 아이템 타입 필터링
+                currentItemType = event.target.dataset.type;
+                displayItems(allItems);
+            }
+        });
+
+        // 사용자 데이터 로드 버튼 이벤트 리스너
+        loadUserButton.addEventListener('click', loadUserData);
+    });
+</script>
+</body>
+</html>
