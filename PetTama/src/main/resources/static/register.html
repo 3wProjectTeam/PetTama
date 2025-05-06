@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetTama - 회원가입</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .register-container {
+      max-width: 500px;
+      margin: 2rem auto;
+      background-color: var(--background-light);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 2rem;
+    }
+
+    .register-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .register-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .form-group input {
+      padding: 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .register-button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .register-button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .login-link a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .error-message {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .success-message {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>PetTama</h1>
+    <p class="subtitle">당신만의 가상 반려동물을 키워보세요!</p>
+  </header>
+
+  <div class="register-container">
+    <div class="register-header">
+      <h2>회원가입</h2>
+    </div>
+
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+
+    <form id="registerForm" class="register-form">
+      <div class="form-group">
+        <label for="email">이메일</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">비밀번호 확인</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required>
+      </div>
+
+      <div class="form-group">
+        <label for="nickname">닉네임</label>
+        <input type="text" id="nickname" name="nickname" required>
+      </div>
+
+      <div class="form-group">
+        <label for="monthlyIncome">월 수입 (원)</label>
+        <input type="number" id="monthlyIncome" name="monthlyIncome" min="0" step="10000" required>
+      </div>
+
+      <button type="submit" class="register-button">회원가입</button>
+    </form>
+
+    <div class="login-link">
+      <p>이미 계정이 있으신가요? <a href="/auth/login">로그인</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const registerForm = document.getElementById('registerForm');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+
+    registerForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      // 입력값 가져오기
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const nickname = document.getElementById('nickname').value;
+      const monthlyIncome = parseInt(document.getElementById('monthlyIncome').value, 10);
+
+      // 오류 메시지 초기화
+      errorMessage.style.display = 'none';
+      successMessage.style.display = 'none';
+
+      // 비밀번호 확인
+      if (password !== confirmPassword) {
+        errorMessage.textContent = '비밀번호가 일치하지 않습니다.';
+        errorMessage.style.display = 'block';
+        return;
+      }
+
+      try {
+        // 회원가입 버튼 비활성화 및 로딩 표시
+        const registerButton = document.querySelector('.register-button');
+        registerButton.disabled = true;
+        registerButton.textContent = '처리 중...';
+
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+            nickname: nickname,
+            monthlyIncome: monthlyIncome
+          })
+        });
+
+        // 회원가입 버튼 복원
+        registerButton.disabled = false;
+        registerButton.textContent = '회원가입';
+
+        if (response.ok) {
+          const userData = await response.json();
+
+          // 성공 메시지 표시
+          successMessage.textContent = '회원가입이 완료되었습니다. 잠시 후 로그인 페이지로 이동합니다.';
+          successMessage.style.display = 'block';
+
+          // 폼 초기화
+          registerForm.reset();
+
+          // 3초 후 로그인 페이지로 이동
+          setTimeout(() => {
+            window.location.href = '/auth/login';
+          }, 3000);
+        } else {
+          const errorData = await response.text();
+          errorMessage.textContent = errorData || '회원가입에 실패했습니다.';
+          errorMessage.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('서버 연결 오류:', error);
+        errorMessage.textContent = '서버 연결 오류가 발생했습니다. 나중에 다시 시도해주세요.';
+        errorMessage.style.display = 'block';
+
+        // 회원가입 버튼 복원
+        const registerButton = document.querySelector('.register-button');
+        registerButton.disabled = false;
+        registerButton.textContent = '회원가입';
+      }
+    });
+  });
+  // 이메일 형식 검사
+  function isValidEmail(email) {
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(String(email).toLowerCase());
+  }
+
+  // 비밀번호 강도 검사
+  function isStrongPassword(password) {
+    return password.length >= 8;
+  }
+
+  // 폼 제출 전 유효성 검사
+  registerForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const nickname = document.getElementById('nickname').value;
+
+    // 오류 메시지 초기화
+    errorMessage.style.display = 'none';
+
+    // 이메일 유효성 검사
+    if (!isValidEmail(email)) {
+      errorMessage.textContent = '유효한 이메일 주소를 입력하세요.';
+      errorMessage.style.display = 'block';
+      return;
+    }
+
+    // 비밀번호 강도 검사
+    if (!isStrongPassword(password)) {
+      errorMessage.textContent = '비밀번호는 최소 8자 이상이어야 합니다.';
+      errorMessage.style.display = 'block';
+      return;
+    }
+
+    // 비밀번호 일치 검사
+    if (password !== confirmPassword) {
+      errorMessage.textContent = '비밀번호가 일치하지 않습니다.';
+      errorMessage.style.display = 'block';
+      return;
+    }
+
+    // 닉네임 길이 검사
+    if (nickname.length < 2) {
+      errorMessage.textContent = '닉네임은 최소 2자 이상이어야 합니다.';
+      errorMessage.style.display = 'block';
+      return;
+    }
+
+    // 위 검사를 모두 통과하면 회원가입 API 호출 코드 실행...
+  });
+</script>
+</body>
+</html>
