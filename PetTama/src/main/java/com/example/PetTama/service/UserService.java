@@ -4,15 +4,39 @@ import com.example.PetTama.dto.UserDto;
 import com.example.PetTama.entity.User;
 import com.example.PetTama.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Collections;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + email));
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                Collections.emptyList()
+        );
+    }
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + email));
     }
 
     @Transactional(readOnly = true)
@@ -24,6 +48,9 @@ public class UserService {
 
     @Transactional
     public UserDto createUser(UserDto userDto) {
+        // 비밀번호 암호화
+        userDto.setPassword(passwordEncoder.encode(userDto.getPassword()));
+
         User user = userDto.toEntity();
         user.setId(null); // Ensure we create a new user
         User savedUser = userRepository.save(user);
@@ -40,7 +67,7 @@ public class UserService {
 
         // Only update password if provided
         if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
-            existingUser.setPassword(userDto.getPassword());
+            existingUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
         }
 
         // Update monthly income
@@ -48,5 +75,9 @@ public class UserService {
 
         User updatedUser = userRepository.save(existingUser);
         return UserDto.fromEntity(updatedUser);
+    }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.findByEmail(email).isPresent();
     }
 }
