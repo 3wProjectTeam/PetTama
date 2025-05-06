@@ -555,3 +555,26 @@ document.addEventListener('DOMContentLoaded', function() {
         userProfileLink.style.display = 'inline-block';
     }
 });
+document.addEventListener('DOMContentLoaded', async function() {
+    const authButtons = document.getElementById('authButtons');
+
+    try {
+        const response = await fetch('/api/auth/user');
+
+        if (response.ok) {
+            // 로그인된 상태
+            const user = await response.json();
+            authButtons.innerHTML = `
+                    <span class="user-greeting">안녕하세요, ${user.nickname}님!</span>
+                    <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
+                        <button type="submit" class="navigation-button">로그아웃</button>
+                    </form>
+                `;
+        } else {
+            // 로그인되지 않은 상태
+            authButtons.innerHTML = `<a href="/auth/login" class="navigation-button">로그인</a>`;
+        }
+    } catch (error) {
+        console.error('Error checking auth status:', error);
+    }
+});

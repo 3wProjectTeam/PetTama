@@ -4,6 +4,8 @@ import com.example.PetTama.dto.LoginRequest;
 import com.example.PetTama.dto.UserDto;
 import com.example.PetTama.entity.User;
 import com.example.PetTama.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +24,7 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthApiController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthApiController.class);
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
 
@@ -33,6 +36,8 @@ public class AuthApiController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
+            logger.info("로그인 시도: {}", loginRequest.getEmail());
+
             // Spring Security의 인증 메커니즘 사용
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -45,6 +50,7 @@ public class AuthApiController {
 
             // 사용자 정보 조회
             User user = userService.findByEmail(loginRequest.getEmail());
+            logger.info("로그인 성공: {}", user.getEmail());
 
             Map<String, Object> response = new HashMap<>();
             response.put("id", user.getId());
@@ -54,9 +60,11 @@ public class AuthApiController {
             return ResponseEntity.ok(response);
 
         } catch (BadCredentialsException e) {
+            logger.error("잘못된 인증 정보: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("이메일 또는 비밀번호가 일치하지 않습니다.");
         } catch (Exception e) {
+            logger.error("로그인 처리 중 오류 발생: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("로그인 처리 중 오류가 발생했습니다: " + e.getMessage());
         }

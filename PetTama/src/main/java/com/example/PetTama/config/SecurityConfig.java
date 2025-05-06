@@ -22,16 +22,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/home", "/index.html", "/*.html").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers("/auth/**", "/api/auth/**").permitAll() // 회원가입 경로 허용
+                        .requestMatchers("/auth/**", "/api/auth/**").permitAll()
+                        .requestMatchers("/api/user-nums/**").permitAll() // 펫 API 접근 허용
+                        .requestMatchers("/api/posts/**").permitAll() // 게시판 API 접근 허용
+                        .requestMatchers("/api/items/**").permitAll() // 아이템 API 접근 허용
+                        .requestMatchers("/board/**", "/shop/**").permitAll() // 게시판, 상점 접근 허용
                         .anyRequest().authenticated()
                 )
-                .formLogin(form -> form
-                        .loginPage("/auth/login")
-                        .loginProcessingUrl("/api/auth/login")
-                        .defaultSuccessUrl("/home", true)
-                        .failureUrl("/auth/login?error=true")
-                        .permitAll()
-                )
+                // formLogin 설정 제거하고 API만 사용
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessUrl("/home")
@@ -47,6 +45,7 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
