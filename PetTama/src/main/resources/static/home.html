@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetTama - 반려동물 가상 돌봄 서비스</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* 홈페이지 특화 스타일 */
+    .home-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .hero-section {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
+      border-radius: var(--radius-lg);
+      padding: 3rem 2rem;
+      margin-bottom: 3rem;
+      text-align: center;
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      max-width: 800px;
+      margin: 0 auto 2rem;
+    }
+
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .hero-btn {
+      background-color: white;
+      color: var(--primary-color);
+      font-weight: 700;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      border: 2px solid white;
+    }
+
+    .hero-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .hero-btn.outline {
+      background-color: transparent;
+      color: white;
+    }
+
+    .hero-btn.outline:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .service-card {
+      background-color: var(--background-light);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+      text-decoration: none;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .service-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .service-image {
+      height: 160px;
+      background-color: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+    }
+
+    .service-content {
+      padding: 1.5rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .service-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    .service-description {
+      color: var(--text-secondary);
+      margin-bottom: 1.25rem;
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+
+    .service-link {
+      align-self: flex-start;
+      padding: 0.5rem 1rem;
+      background-color: var(--primary-light);
+      color: var(--primary-color);
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: background-color var(--transition-fast);
+    }
+
+    .service-link:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .features-section {
+      background-color: var(--background-light);
+      border-radius: var(--radius-md);
+      padding: 2rem;
+      margin-bottom: 3rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: var(--text-primary);
+    }
+
+    .features-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+
+    .feature-title {
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .feature-description {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .quick-links {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .quick-link-card {
+      flex: 1;
+      min-width: 180px;
+      background-color: var(--background-light);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .quick-link-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .quick-link-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+
+    .quick-link-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .welcome-message {
+      background-color: var(--secondary-light);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .welcome-icon {
+      font-size: 2.5rem;
+      color: var(--secondary-color);
+    }
+
+    .welcome-text {
+      flex-grow: 1;
+    }
+
+    .welcome-title {
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .welcome-description {
+      color: var(--text-secondary);
+    }
+
+    .status-overview {
+      background-color: var(--background-light);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .status-title {
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-icon {
+      color: var(--primary-color);
+    }
+
+    .status-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .status-card {
+      flex: 1;
+      min-width: 150px;
+      background-color: var(--background-gray);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .status-number {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .status-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .login-required {
+      text-align: center;
+      padding: 2rem;
+      background-color: var(--primary-light);
+      border-radius: var(--radius-md);
+      margin: 2rem 0;
+    }
+
+    .login-required-title {
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--primary-dark);
+    }
+
+    .user-greeting {
+      font-weight: 600;
+      margin-right: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 1.75rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1rem;
+      }
+
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .quick-links {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="home-container">
+  <header>
+    <h1>PetTama</h1>
+    <p class="subtitle">당신만의 가상 반려동물을 키워보세요!</p>
+  </header>
+
+  <!-- 로그인한 사용자 환영 메시지 -->
+  <div id="welcomeMessage" class="welcome-message" style="display: none;">
+    <div class="welcome-icon">👋</div>
+    <div class="welcome-text">
+      <h3 class="welcome-title"><span id="userNickname">사용자</span>님, 환영합니다!</h3>
+      <p class="welcome-description">오늘도 당신의 가상 반려동물과 즐거운 시간을 보내세요.</p>
+    </div>
+  </div>
+
+  <!-- 메인 영웅 섹션 -->
+  <section class="hero-section">
+    <h1 class="hero-title">당신만의 가상 반려동물을 만나보세요</h1>
+    <p class="hero-subtitle">PetTama는 현실적인 반려동물 돌봄 경험을 제공하는 가상 반려동물 서비스입니다. 당신의 일상 속에서 특별한 친구를 만나보세요!</p>
+    <div class="hero-buttons">
+      <a href="/auth/register" class="hero-btn" id="heroRegisterBtn">지금 시작하기</a>
+      <a href="#services" class="hero-btn outline">서비스 살펴보기</a>
+    </div>
+  </section>
+
+  <!-- 사용자 상태 개요 (로그인한 경우만 표시) -->
+  <div id="userStatusOverview" class="status-overview" style="display: none;">
+    <h3 class="status-title"><span class="status-icon">📊</span> 나의 활동 개요</h3>
+    <div class="status-content">
+      <div class="status-card">
+        <div class="status-number" id="petCount">0</div>
+        <div class="status-label">반려동물</div>
+      </div>
+      <div class="status-card">
+        <div class="status-number" id="postCount">0</div>
+        <div class="status-label">작성 게시글</div>
+      </div>
+      <div class="status-card">
+        <div class="status-number" id="itemCount">0</div>
+        <div class="status-label">보유 아이템</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로그인 필요 메시지 (로그인하지 않은 경우만 표시) -->
+  <div id="loginRequired" class="login-required">
+    <h3 class="login-required-title">더 많은 기능을 이용하려면 로그인하세요</h3>
+    <p>나만의 반려동물을 만들고, 관리하고, 다른 사용자들과 소통하려면 로그인이 필요합니다.</p>
+    <div class="hero-buttons" style="margin-top: 1rem;">
+      <a href="/auth/login" class="hero-btn">로그인</a>
+      <a href="/auth/register" class="hero-btn outline">회원가입</a>
+    </div>
+  </div>
+
+  <!-- 서비스 카드 섹션 -->
+  <section id="services">
+    <h2 class="section-title">PetTama 서비스</h2>
+    <div class="services-grid">
+      <a href="/home" class="service-card">
+        <div class="service-image">🏠</div>
+        <div class="service-content">
+          <h3 class="service-title">내 반려동물</h3>
+          <p class="service-description">당신만의 가상 반려동물을 만들고 관리하세요. 먹이 주기, 놀아주기, 목욕시키기 등 다양한 상호작용을 통해 반려동물과 유대감을 쌓아보세요.</p>
+          <span class="service-link">시작하기</span>
+        </div>
+      </a>
+
+      <a href="/shop" class="service-card">
+        <div class="service-image">🛒</div>
+        <div class="service-content">
+          <h3 class="service-title">상점</h3>
+          <p class="service-description">반려동물을 위한 다양한 아이템을 구매하세요. 장난감, 먹이, 액세서리 등 다양한 상품이 준비되어 있습니다.</p>
+          <span class="service-link">쇼핑하기</span>
+        </div>
+      </a>
+
+      <a href="/board" class="service-card">
+        <div class="service-image">📝</div>
+        <div class="service-content">
+          <h3 class="service-title">커뮤니티</h3>
+          <p class="service-description">다른 사용자들과 정보를 공유하고 소통하세요. 게시판을 통해 반려동물 관리 팁이나 재미있는 경험을 나눌 수 있습니다.</p>
+          <span class="service-link">참여하기</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- 특징 섹션 -->
+  <section class="features-section">
+    <h2 class="section-title">PetTama 특징</h2>
+    <div class="features-list">
+      <div class="feature-item">
+        <div class="feature-icon">🎮</div>
+        <h3 class="feature-title">실시간 상호작용</h3>
+        <p class="feature-description">다양한 활동을 통해 반려동물과 실시간으로 상호작용하세요.</p>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🧬</div>
+        <h3 class="feature-title">현실적인 성장 시스템</h3>
+        <p class="feature-description">당신의 관리에 따라 반려동물의 상태와 성격이 변화합니다.</p>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">💝</div>
+        <h3 class="feature-title">정서적 유대감</h3>
+        <p class="feature-description">지속적인 관리를 통해 반려동물과 특별한 유대감을 형성하세요.</p>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">👨‍👩‍👧‍👦</div>
+        <h3 class="feature-title">활발한 커뮤니티</h3>
+        <p class="feature-description">다른 사용자들과 경험을 공유하고 함께 성장하세요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 빠른 링크 섹션 -->
+  <section>
+    <h2 class="section-title">빠른 링크</h2>
+    <div class="quick-links">
+      <a href="/home?userId=1" class="quick-link-card" id="myPetsLink">
+        <div class="quick-link-icon">🐾</div>
+        <div class="quick-link-title">내 반려동물</div>
+      </a>
+
+      <a href="/shop" class="quick-link-card">
+        <div class="quick-link-icon">🛍️</div>
+        <div class="quick-link-title">상점 방문</div>
+      </a>
+
+      <a href="/board" class="quick-link-card">
+        <div class="quick-link-icon">📋</div>
+        <div class="quick-link-title">게시판</div>
+      </a>
+
+      <a href="/users/1" class="quick-link-card" id="myProfileLink">
+        <div class="quick-link-icon">👤</div>
+        <div class="quick-link-title">내 프로필</div>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 PetTama - 가상 반려동물 서비스</p>
+  </footer>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // DOM 요소
+    const authButtons = document.getElementById('authButtons');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    const userNickname = document.getElementById('userNickname');
+    const userStatusOverview = document.getElementById('userStatusOverview');
+    const loginRequired = document.getElementById('loginRequired');
+    const heroRegisterBtn = document.getElementById('heroRegisterBtn');
+    const myPetsLink = document.getElementById('myPetsLink');
+    const myProfileLink = document.getElementById('myProfileLink');
+
+    // 상태 변수
+    let isLoggedIn = false;
+    let currentUser = null;
+
+    // 로그인 상태 확인
+    checkAuthStatus();
+
+    // 로그인 상태 확인
+    async function checkAuthStatus() {
+      try {
+        const response = await fetch('/api/auth/user');
+
+        if (response.ok) {
+          // 로그인된 상태
+          currentUser = await response.json();
+          isLoggedIn = true;
+
+          // 사용자 정보 표시
+          userNickname.textContent = currentUser.nickname;
+
+          // 환영 메시지 표시
+          welcomeMessage.style.display = 'flex';
+
+          // 사용자 상태 개요 표시
+          userStatusOverview.style.display = 'block';
+
+          // 로그인 필요 메시지 숨기기
+          loginRequired.style.display = 'none';
+
+          // 링크 URL 업데이트
+          myPetsLink.href = `/home?userId=${currentUser.id}`;
+          myProfileLink.href = `/users/${currentUser.id}`;
+
+          // 영웅 섹션 버튼 변경
+          heroRegisterBtn.textContent = '내 반려동물 관리하기';
+          heroRegisterBtn.href = `/home?userId=${currentUser.id}`;
+
+          // 인증 버튼 업데이트
+          authButtons.innerHTML = `
+              <span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>
+              <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
+                <button type="submit" class="navigation-button">로그아웃</button>
+              </form>
+            `;
+
+          // 사용자 통계 로드
+          loadUserStats(currentUser.id);
+        } else {
+          // 로그인되지 않은 상태
+          isLoggedIn = false;
+
+          // 환영 메시지 숨기기
+          welcomeMessage.style.display = 'none';
+
+          // 사용자 상태 개요 숨기기
+          userStatusOverview.style.display = 'none';
+
+          // 로그인 필요 메시지 표시
+          loginRequired.style.display = 'block';
+
+          // 인증 버튼 업데이트
+          authButtons.innerHTML = `
+              <a href="/auth/login" class="navigation-button">로그인</a>
+              <a href="/auth/register" class="navigation-button">회원가입</a>
+            `;
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        isLoggedIn = false;
+      }
+    }
+
+    // 사용자 통계 로드
+    async function loadUserStats(userId) {
+      try {
+        // 펫 수 로드
+        const petsResponse = await fetch(`/api/user-nums/${userId}`);
+        if (petsResponse.ok) {
+          const pets = await petsResponse.json();
+          document.getElementById('petCount').textContent = pets.length;
+        }
+
+        // 게시글 수 로드 (API가 있다고 가정)
+        try {
+          const postsResponse = await fetch(`/api/posts/user/${userId}`);
+          if (postsResponse.ok) {
+            const posts = await postsResponse.json();
+            document.getElementById('postCount').textContent = posts.length;
+          }
+        } catch (error) {
+          // API가 없을 경우 기본값 유지
+          document.getElementById('postCount').textContent = '?';
+        }
+
+        // 아이템 수 로드
+        try {
+          const itemsResponse = await fetch(`/api/items/user/${userId}`);
+          if (itemsResponse.ok) {
+            const items = await itemsResponse.json();
+            let totalItems = 0;
+            items.forEach(item => {
+              totalItems += item.quantity;
+            });
+            document.getElementById('itemCount').textContent = totalItems;
+          }
+        } catch (error) {
+          // 오류 발생 시 기본값 유지
+          document.getElementById('itemCount').textContent = '?';
+        }
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+      }
+    }
+  });
+</script>
+</body>
+</html>
