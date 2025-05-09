@@ -14,10 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 인증 관련 API 컨트롤러
- * 로그인 처리는 Spring Security에 맡기고, 사용자 정보 조회 및 회원가입만 처리
- */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthApiController {
@@ -29,12 +25,8 @@ public class AuthApiController {
         this.userService = userService;
     }
 
-    /**
-     * 현재 로그인한 사용자 정보 조회
-     * @return 사용자 정보 또는 401 Unauthorized
-     */
     @GetMapping("/user")
-    public ResponseEntity<?> getCurrentUser() {
+    public ResponseEntity<?> getUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() &&
                 !"anonymousUser".equals(authentication.getPrincipal())) {

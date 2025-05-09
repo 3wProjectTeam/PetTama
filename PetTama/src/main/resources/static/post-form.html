@@ -110,6 +110,34 @@
       color: white;
       display: block;
     }
+
+    .login-required-message {
+      text-align: center;
+      padding: 2rem;
+      background-color: var(--primary-light);
+      border-radius: var(--radius-md);
+      margin-top: 1rem;
+    }
+
+    .login-required-message a {
+      color: var(--primary-color);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .user-greeting {
+      font-weight: 600;
+      margin-right: 1rem;
+    }
+
+    .nickname-display {
+      background-color: var(--background-gray);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
   </style>
 </head>
 <body>
@@ -120,6 +148,11 @@
     <div class="navigation">
       <a href="/home" class="navigation-button">홈으로</a>
       <a href="/board" class="navigation-button">게시판</a>
+      <a href="/shop" class="navigation-button">상점</a>
+    </div>
+    <div id="authButtons">
+      <a href="/auth/login" class="navigation-button">로그인</a>
+      <a href="/auth/register" class="navigation-button">회원가입</a>
     </div>
   </header>
 
@@ -128,29 +161,38 @@
       <h2 id="formTitle">게시글 작성</h2>
     </div>
 
-    <form id="postForm">
-      <div class="input-group">
-        <label for="postTitle">제목</label>
-        <input type="text" id="postTitle" name="title" placeholder="제목을 입력하세요" required>
-      </div>
+    <div id="contentArea">
+      <form id="postForm">
+        <div class="input-group">
+          <label for="postTitle">제목</label>
+          <input type="text" id="postTitle" name="title" placeholder="제목을 입력하세요" required>
+        </div>
 
-      <div class="input-group">
-        <label for="postNickname">닉네임</label>
-        <input type="text" id="postNickname" name="nickname" placeholder="닉네임을 입력하세요" required>
-      </div>
+        <div class="input-group">
+          <label for="postNickname">작성자</label>
+          <div id="postNickname" class="nickname-display">로딩 중...</div>
+          <input type="hidden" id="postNicknameInput" name="nickname">
+        </div>
 
-      <div class="input-group">
-        <label for="postContent">내용</label>
-        <textarea id="postContent" name="content" placeholder="내용을 입력하세요" required></textarea>
-      </div>
+        <div class="input-group">
+          <label for="postContent">내용</label>
+          <textarea id="postContent" name="content" placeholder="내용을 입력하세요" required></textarea>
+        </div>
 
-      <div class="form-actions">
-        <button type="button" id="cancelButton" class="secondary-btn">취소</button>
-        <button type="submit" id="submitButton" class="primary-btn">저장</button>
-      </div>
-    </form>
+        <div class="form-actions">
+          <button type="button" id="cancelButton" class="secondary-btn">취소</button>
+          <button type="submit" id="submitButton" class="primary-btn">저장</button>
+        </div>
+      </form>
 
-    <p id="statusMessage" class="status-message"></p>
+      <p id="statusMessage" class="status-message"></p>
+    </div>
+
+    <div id="loginRequired" class="login-required-message" style="display: none;">
+      <h3>로그인이 필요합니다</h3>
+      <p>게시글을 작성하려면 로그인이 필요합니다.</p>
+      <a href="/auth/login" class="primary-btn">로그인하기</a>
+    </div>
   </div>
 </div>
 
@@ -160,15 +202,76 @@
     const formTitle = document.getElementById('formTitle');
     const postForm = document.getElementById('postForm');
     const postTitleInput = document.getElementById('postTitle');
-    const postNicknameInput = document.getElementById('postNickname');
+    const postNicknameDisplay = document.getElementById('postNickname');
+    const postNicknameInput = document.getElementById('postNicknameInput');
     const postContentInput = document.getElementById('postContent');
     const cancelButton = document.getElementById('cancelButton');
     const submitButton = document.getElementById('submitButton');
     const statusMessage = document.getElementById('statusMessage');
+    const contentArea = document.getElementById('contentArea');
+    const loginRequired = document.getElementById('loginRequired');
+    const authButtons = document.getElementById('authButtons');
 
     // 상태 변수
     let isEditMode = false;
     let postId = null;
+    let isLoggedIn = false;
+    let currentUser = null;
+
+    // 페이지 로드 시 로그인 상태 확인
+    checkAuthStatus();
+
+    // 로그인 상태 확인
+    async function checkAuthStatus() {
+      try {
+        const response = await fetch('/api/auth/user');
+
+        if (response.ok) {
+          // 로그인된 상태
+          currentUser = await response.json();
+          isLoggedIn = true;
+
+          // 사용자 닉네임 표시
+          postNicknameDisplay.textContent = currentUser.nickname;
+          postNicknameInput.value = currentUser.nickname;
+
+          // 인증 버튼 업데이트
+          authButtons.innerHTML = `
+            <span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>
+            <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
+              <button type="submit" class="navigation-button">로그아웃</button>
+            </form>
+          `;
+
+          // 컨텐츠 영역 표시
+          contentArea.style.display = 'block';
+          loginRequired.style.display = 'none';
+
+          // 초기화 (게시글 로드 등)
+          initialize();
+        } else {
+          // 로그인되지 않은 상태
+          isLoggedIn = false;
+
+          // 인증 버튼 업데이트
+          authButtons.innerHTML = `
+            <a href="/auth/login" class="navigation-button">로그인</a>
+            <a href="/auth/register" class="navigation-button">회원가입</a>
+          `;
+
+          // 로그인 필요 메시지 표시
+          contentArea.style.display = 'none';
+          loginRequired.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        isLoggedIn = false;
+
+        // 로그인 필요 메시지 표시
+        contentArea.style.display = 'none';
+        loginRequired.style.display = 'block';
+      }
+    }
 
     // URL에서 게시글 ID 추출 (수정 모드인 경우)
     function getPostIdFromUrl() {
@@ -202,6 +305,10 @@
 
     // 초기화 함수
     function initialize() {
+      if (!isLoggedIn) {
+        return;
+      }
+
       // URL을 확인해 모드(생성/수정) 결정
       postId = getPostIdFromUrl();
       isEditMode = !!postId;
@@ -228,8 +335,12 @@
 
         // 폼에 값 채우기
         postTitleInput.value = post.title;
-        postNicknameInput.value = post.nickname;
         postContentInput.value = post.content;
+
+        // 작성자 닉네임 표시 (원래 작성자와 현재 사용자가 다를 경우 처리 필요)
+        if (post.nickname !== currentUser.nickname) {
+          showStatusMessage('주의: 다른 사용자의 게시글을 수정하고 있습니다. 저장 시 작성자가 변경됩니다.', 'error');
+        }
       } catch (error) {
         console.error('Error loading post data:', error);
         showStatusMessage('게시글을 불러오는데 실패했습니다: ' + error.message, 'error');
@@ -296,21 +407,21 @@
     postForm.addEventListener('submit', function(e) {
       e.preventDefault();
 
+      if (!isLoggedIn) {
+        showStatusMessage('로그인이 필요합니다.', 'error');
+        loginRequired.style.display = 'block';
+        return;
+      }
+
       // 입력값 가져오기
       const title = postTitleInput.value.trim();
-      const nickname = postNicknameInput.value.trim();
       const content = postContentInput.value.trim();
+      const nickname = currentUser.nickname; // 로그인한 사용자의 닉네임 사용
 
       // 입력값 검증
       if (!title) {
         showStatusMessage('제목을 입력해주세요.', 'error');
         postTitleInput.focus();
-        return;
-      }
-
-      if (!nickname) {
-        showStatusMessage('닉네임을 입력해주세요.', 'error');
-        postNicknameInput.focus();
         return;
       }
 
@@ -349,7 +460,7 @@
         window.location.href = '/board';
       }
     });
-
-    // 초기화
-    initialize()});
+  });
 </script>
+</body>
+</html>
