@@ -103,7 +103,8 @@
 
         <div id="errorMessage" class="error-message"></div>
 
-        <form id="loginForm" class="login-form">
+        <!-- 전통적인 폼 제출 방식으로 변경 -->
+        <form id="loginForm" class="login-form" method="post" action="/api/auth/login">
             <div class="form-group">
                 <label for="email">이메일</label>
                 <input type="email" id="email" name="email" required>
@@ -113,6 +114,9 @@
                 <label for="password">비밀번호</label>
                 <input type="password" id="password" name="password" required>
             </div>
+
+            <!-- 리디렉션 URL 히든 필드 -->
+            <input type="hidden" name="redirect" value="/home" id="redirectInput">
 
             <button type="submit" class="login-button">로그인</button>
         </form>
@@ -125,49 +129,22 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
+        const redirectInput = document.getElementById('redirectInput');
 
-        // URL 파라미터에서 오류 메시지 확인
+        // URL에서 오류 메시지 및 리디렉션 파라미터 확인
         const urlParams = new URLSearchParams(window.location.search);
+
+        // 리디렉션 URL 설정
+        if (urlParams.has('redirect')) {
+            redirectInput.value = urlParams.get('redirect');
+        }
+
+        // 오류 메시지 표시
         if (urlParams.has('error')) {
             errorMessage.textContent = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
             errorMessage.style.display = 'block';
         }
-
-        loginForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                });
-
-                if (response.ok) {
-                    const userData = await response.json();
-                    // 로그인 성공 시 홈 페이지로 이동
-                    window.location.href = '/home';
-                } else {
-                    const errorData = await response.text();
-                    errorMessage.textContent = errorData || '로그인에 실패했습니다.';
-                    errorMessage.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                errorMessage.textContent = '서버 연결 오류가 발생했습니다.';
-                errorMessage.style.display = 'block';
-            }
-        });
     });
 </script>
 </body>

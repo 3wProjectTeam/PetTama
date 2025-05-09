@@ -1,12 +1,10 @@
 /**
- * PetTama - 메인 자바스크립트 파일
- * 펫 관리 및 FSM(Finite State Machine) 기반 상태 관리
+ * PetTama - 간소화된 자바스크립트 파일
+ * 서버 측 Spring Security 인증을 활용
  */
 
 document.addEventListener('DOMContentLoaded', function() {
     // DOM 요소
-    const userIdInput = document.getElementById('userIdInput');
-    const loadPetsButton = document.getElementById('loadPetsButton');
     const petListUl = document.getElementById('petList');
     const petDetailsSection = document.querySelector('.pet-details-section');
     const petNameInput = document.getElementById('petNameInput');
@@ -16,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const actionButtons = document.querySelectorAll('.action-button');
     const petDetailName = document.getElementById('petDetailName');
     const petTypeOptions = document.querySelectorAll('.pet-type-option');
+    const userNicknameDisplay = document.getElementById('userNicknameDisplay');
 
     // 스탯 관련 요소
     const statBars = {
@@ -113,22 +112,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
-     * API 요청 처리
+     * API 요청 처리 - 리다이렉트 처리 추가
      * @param {string} url - API 엔드포인트
      * @param {Object} options - fetch 옵션
      * @returns {Promise<any>} - API 응답
      */
-    async function fetchWithErrorHandling(url, options) {
-        options = options || {};
-
+    async function fetchAPI(url, options) {
         try {
-            const response = await fetch(url, options);
+            // 리다이렉트 처리 옵션 추가
+            const fetchOptions = {
+                ...options,
+                redirect: 'follow' // 서버 리다이렉트를 따르도록 설정
+            };
+
+            const response = await fetch(url, fetchOptions);
+
+            // 서버 리다이렉트 확인
+            if (response.redirected) {
+                window.location.href = response.url;
+                return null;
+            }
+
+            // 인증 오류 시 로그인 페이지로 리디렉션
+            if (response.status === 401 || response.status === 403) {
+                // 현재 URL을 redirect 파라미터로 전달
+                const currentPath = encodeURIComponent(window.location.pathname);
+                window.location.href = `/auth/login?redirect=${currentPath}`;
+                throw new Error('로그인이 필요합니다');
+            }
 
             if (!response.ok) {
-                const errorData = await response.json().catch(function() {
-                    return { message: '알 수 없는 오류가 발생했습니다.' };
-                });
-                throw new Error(errorData.message || "HTTP 오류! 상태: " + response.status);
+                throw new Error('API 요청 실패: ' + response.status);
             }
 
             return await response.json();
@@ -141,29 +155,61 @@ document.addEventListener('DOMContentLoaded', function() {
     // === 메인 기능 함수 ===
 
     /**
+     * 현재 로그인한 사용자 정보 가져오기
+     */
+    async function fetchCurrentUser() {
+        try {
+            const user = await fetchAPI('/api/auth/user');
+
+            // 리다이렉트된 경우 (fetchAPI 내부에서 처리)
+            if (!user) return null;
+
+            currentUserId = user.id;
+
+            // 닉네임 표시
+            if (userNicknameDisplay) {
+                userNicknameDisplay.textContent = user.nickname;
+            }
+
+            // 펫 생성 섹션 헤더 업데이트
+            const petCreationHeader = document.querySelector('.pet-creation h2');
+            if (petCreationHeader) {
+                petCreationHeader.textContent = `새 펫 만들기 (${user.nickname}님)`;
+            }
+
+            // 환영 메시지 추가
+            displayWelcomeMessage(user.nickname);
+
+            // 펫 목록 자동 로드
+            fetchPets(user.id);
+
+            return user;
+        } catch (error) {
+            console.error('사용자 정보 가져오기 실패:', error);
+            return null;
+        }
+    }
+
+    /**
      * 사용자의 모든 펫 가져오기
      * @param {number} userId - 사용자 ID
      */
     async function fetchPets(userId) {
         try {
-            const pets = await fetchWithErrorHandling(API_BASE_URL + "/" + userId);
+            const pets = await fetchAPI(`${API_BASE_URL}/${userId}`);
 
-            // 추가 필드가 없는 경우 id 필드 추가 (API 수정 전까지 임시 조치)
+            // petType이 없는 경우 기본값 설정
             petsData = pets.map(function(pet, index) {
-                // petType이 없는 경우 기본값 설정
                 if (!pet.petType) {
                     pet.petType = 'CAT';
                 }
-
-                return {
-                    ...pet,
-                    id: pet.id || index + 1 // id가 없으면 인덱스로 대체
-                };
+                return {...pet};
             });
 
             displayPetList(petsData);
         } catch (error) {
-            showStatusMessage(creationStatusP, "펫 목록을 불러오는데 실패했습니다: " + error.message, 'error');
+            console.error('펫 목록 로드 실패:', error);
+            showStatusMessage(creationStatusP, "펫 목록을 불러오는데 실패했습니다", 'error');
             petListUl.innerHTML = '<li>펫 목록을 불러오는데 실패했습니다.</li>';
         }
     }
@@ -175,13 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     async function fetchPetDetails(userId, petId) {
         try {
-            // API에서 최신 정보 가져오기
-            const pet = await fetchWithErrorHandling(API_BASE_URL + "/" + userId + "/pets/" + petId);
-
-            // id 추가 (필요한 경우)
-            if (!pet.id) {
-                pet.id = petId;
-            }
+            const pet = await fetchAPI(`${API_BASE_URL}/${userId}/pets/${petId}`);
 
             // petType이 없는 경우 기본값 설정
             if (!pet.petType) {
@@ -200,7 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // 선택한 펫 목록 항목 강조
             highlightSelectedPet(petId);
         } catch (error) {
-            showStatusMessage(actionStatusP, "펫 정보를 불러오는데 실패했습니다: " + error.message, 'error');
+            console.error('펫 상세 정보 로드 실패:', error);
+            showStatusMessage(actionStatusP, "펫 정보를 불러오는데 실패했습니다", 'error');
         }
     }
 
@@ -326,7 +367,6 @@ document.addEventListener('DOMContentLoaded', function() {
         petStateBadge.classList.add(state.toLowerCase());
 
         // 펫 이미지 업데이트 (상태 이모지와 펫 타입 이모지 조합)
-        // 상태가 심각할 때는 상태 이모지, 그렇지 않으면 펫 타입 이모지
         if (state === 'CRITICAL' || state === 'SICK') {
             petImage.textContent = stateEmojis[state];
         } else {
@@ -386,58 +426,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * 펫 생성
-     * @param {number} userId - 사용자 ID
      * @param {string} name - 펫 이름
      * @param {string} petType - 펫 타입
      */
-    async function createPet(userId, name, petType) {
+    async function createPet(name, petType) {
         try {
             showStatusMessage(creationStatusP, '펫 생성 중...', 'info');
 
-            const newPet = await fetchWithErrorHandling(
-                API_BASE_URL + "/" + userId + "?name=" + encodeURIComponent(name) + "&petType=" + encodeURIComponent(petType),
+            const newPet = await fetchAPI(
+                `${API_BASE_URL}/${currentUserId}?name=${encodeURIComponent(name)}&petType=${encodeURIComponent(petType)}`,
                 { method: 'POST' }
             );
 
-            showStatusMessage(creationStatusP, '"' + newPet.name + '" 생성 완료!', 'success');
+            showStatusMessage(creationStatusP, `"${newPet.name}" 생성 완료!`, 'success');
             petNameInput.value = ''; // 입력 필드 초기화
 
             // 펫 목록 새로고침
-            fetchPets(userId);
+            fetchPets(currentUserId);
         } catch (error) {
-            showStatusMessage(creationStatusP, '펫 생성 실패: ' + error.message, 'error');
+            console.error('펫 생성 실패:', error);
+            showStatusMessage(creationStatusP, '펫 생성 실패', 'error');
         }
     }
 
     /**
      * 펫 액션 수행
-     * @param {number} userId - 사용자 ID
      * @param {number} petId - 펫 ID
      * @param {string} action - 액션 (feed, play, sleep 등)
      */
-    async function performPetAction(userId, petId, action) {
+    async function performPetAction(petId, action) {
         try {
             showStatusMessage(actionStatusP, getActionName(action) + " 중...", 'info');
 
             // 버튼 애니메이션
-            const actionButton = document.querySelector('.action-button[data-action="' + action + '"]');
+            const actionButton = document.querySelector(`.action-button[data-action="${action}"]`);
             if (actionButton) {
                 actionButton.classList.add('action-success');
-                setTimeout(function() {
+                setTimeout(() => {
                     actionButton.classList.remove('action-success');
                 }, 500);
             }
 
-            // API 요청 (각 액션에 맞는 엔드포인트 사용)
-            const updatedPet = await fetchWithErrorHandling(
-                API_BASE_URL + "/" + userId + "/pets/" + petId + "/" + action,
+            // API 요청
+            const updatedPet = await fetchAPI(
+                `${API_BASE_URL}/${currentUserId}/pets/${petId}/${action}`,
                 { method: 'PUT' }
             );
-
-            // 펫 정보 업데이트
-            if (!updatedPet.id) {
-                updatedPet.id = petId;
-            }
 
             // petType이 없는 경우 기존 데이터에서 가져오기
             if (!updatedPet.petType) {
@@ -448,24 +482,16 @@ document.addEventListener('DOMContentLoaded', function() {
             displayPetDetails(updatedPet);
 
             // 성공 메시지
-            showStatusMessage(
-                actionStatusP,
-                '"' + getActionName(action) + '" 완료!',
-                'success'
-            );
+            showStatusMessage(actionStatusP, `"${getActionName(action)}" 완료!`, 'success');
 
             // 로컬 펫 데이터 업데이트
-            const index = petsData.findIndex(function(p) { return p.id === petId; });
+            const index = petsData.findIndex(p => p.id === petId);
             if (index !== -1) {
-                petsData[index] = Object.assign({}, petsData[index], updatedPet);
+                petsData[index] = {...petsData[index], ...updatedPet};
             }
-
         } catch (error) {
-            showStatusMessage(
-                actionStatusP,
-                getActionName(action) + ' 실패: ' + error.message,
-                'error'
-            );
+            console.error(`${action} 액션 실패:`, error);
+            showStatusMessage(actionStatusP, `${getActionName(action)} 실패`, 'error');
         }
     }
 
@@ -504,31 +530,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 펫 목록 불러오기 버튼
-    loadPetsButton.addEventListener('click', function() {
-        const userId = parseInt(userIdInput.value, 10);
-        if (userId) {
-            currentUserId = userId;
-            petDetailsSection.style.display = 'none'; // 상세 정보 숨기기
-            fetchPets(currentUserId);
-        } else {
-            showStatusMessage(creationStatusP, '유효한 사용자 ID를 입력하세요.', 'error');
-        }
-    });
-
     // 펫 생성 버튼
-    createPetButton.addEventListener('click', function() {
-        const userId = parseInt(userIdInput.value, 10);
-        const petName = petNameInput.value.trim();
+    if (createPetButton) {
+        createPetButton.addEventListener('click', function() {
+            const petName = petNameInput.value.trim();
 
-        if (!userId) {
-            showStatusMessage(creationStatusP, '유효한 사용자 ID를 입력하세요.', 'error');
-        } else if (!petName) {
-            showStatusMessage(creationStatusP, '펫 이름을 입력하세요.', 'error');
-        } else {
-            createPet(userId, petName, selectedPetType);
-        }
-    });
+            if (!petName) {
+                showStatusMessage(creationStatusP, '펫 이름을 입력하세요.', 'error');
+                return;
+            }
+
+            if (!currentUserId) {
+                showStatusMessage(creationStatusP, '로그인이 필요합니다.', 'error');
+                return;
+            }
+
+            createPet(petName, selectedPetType);
+        });
+    }
 
     // 펫 관리 액션 버튼들
     actionButtons.forEach(function(button) {
@@ -539,22 +558,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const action = button.dataset.action;
-            performPetAction(currentUserId, currentPetId, action);
+            performPetAction(currentPetId, action);
         });
     });
 
-    // 페이지 로드 시 초기화 (선택 사항)
-    const initialUserId = parseInt(userIdInput.value, 10);
-    if (initialUserId) {
-        currentUserId = initialUserId;
-        fetchPets(currentUserId);
-    }
-    const userProfileLink = document.getElementById('userProfileLink');
-    if (userProfileLink) {
-        userProfileLink.href = `/users/${currentUserId}`;
-        userProfileLink.style.display = 'inline-block';
-    }
+    // 페이지 로드 시 사용자 정보 및 펫 목록 로드
+    fetchCurrentUser();
 });
+
+// 로그인 상태 표시
 document.addEventListener('DOMContentLoaded', async function() {
     const authButtons = document.getElementById('authButtons');
 
@@ -565,16 +577,35 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 로그인된 상태
             const user = await response.json();
             authButtons.innerHTML = `
-                    <span class="user-greeting">안녕하세요, ${user.nickname}님!</span>
-                    <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
-                        <button type="submit" class="navigation-button">로그아웃</button>
-                    </form>
-                `;
+                <span class="user-greeting">안녕하세요, ${user.nickname}님!</span>
+                <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
+                    <button type="submit" class="navigation-button">로그아웃</button>
+                </form>
+            `;
         } else {
             // 로그인되지 않은 상태
             authButtons.innerHTML = `<a href="/auth/login" class="navigation-button">로그인</a>`;
         }
     } catch (error) {
-        console.error('Error checking auth status:', error);
+        console.error('로그인 상태 확인 실패:', error);
     }
 });
+/**
+ * 환영 메시지 표시
+ * @param {string} nickname - 사용자 닉네임
+ */
+function displayWelcomeMessage(nickname) {
+    const welcomeMsg = document.createElement('div');
+    welcomeMsg.className = 'welcome-message';
+    welcomeMsg.innerHTML = `<p>${nickname}님, 환영합니다! 펫을 선택하거나 새 펫을 만들어보세요.</p>`;
+
+    const petListSection = document.querySelector('.pet-list-section');
+    if (petListSection) {
+        // 기존 환영 메시지가 있으면 제거
+        const existingMsg = petListSection.querySelector('.welcome-message');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+        petListSection.prepend(welcomeMsg);
+    }
+}
