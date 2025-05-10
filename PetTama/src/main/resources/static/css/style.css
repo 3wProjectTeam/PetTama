@@ -505,4 +505,215 @@ footer {
         align-items: center;
         line-height: 1.2;
     }
+    /* 먹이 선택 모달 스타일 */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal {
+        background-color: var(--background-light);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        width: 90%;
+        max-width: 500px;
+        padding: 1.5rem;
+    }
+
+    .modal-header {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .feed-items-list {
+        max-height: 400px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+
+    .feed-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        gap: 0.75rem;
+    }
+
+    .feed-item-icon {
+        font-size: 2rem;
+    }
+
+    .feed-item-info {
+        flex-grow: 1;
+    }
+
+    .feed-item-name {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        color: var(--text-primary);
+    }
+
+    .feed-item-description {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .feed-item-effects {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .feed-item-quantity {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        margin-right: 1rem;
+    }
+
+    .use-feed-button {
+        padding: 0.35rem 0.75rem !important;
+        font-size: 0.875rem !important;
+    }
+    /* 인벤토리 섹션 스타일 */
+    .inventory-section {
+        background-color: var(--background-light);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .inventory-list {
+        max-height: 400px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+
+    .inventory-type {
+        margin-bottom: 1rem;
+    }
+
+    .inventory-type-header {
+        font-weight: 600;
+        color: var(--text-secondary);
+        padding: 0.5rem 0;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px dashed var(--border-color);
+    }
+
+    .inventory-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        gap: 0.75rem;
+    }
+
+    .inventory-item:last-child {
+        border-bottom: none;
+    }
+
+    .inventory-item-icon {
+        font-size: 1.5rem;
+    }
+
+    .inventory-item-info {
+        flex-grow: 1;
+    }
+
+    .inventory-item-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .inventory-item-effects {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .effect {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 1rem;
+        font-weight: 500;
+    }
+
+    .inventory-item-quantity {
+        background-color: var(--background-gray);
+        color: var(--text-secondary);
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+        margin-right: 0.5rem;
+    }
+
+    .inventory-use-button {
+        padding: 0.35rem 0.75rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: background-color var(--transition-fast);
+    }
+
+    .inventory-use-button:hover {
+        background-color: var(--primary-dark);
+    }
+
+    .inventory-footer {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .refresh-icon {
+        display: inline-block;
+        transition: transform 0.3s ease;
+    }
+
+    #refreshInventoryButton:hover .refresh-icon {
+        transform: rotate(180deg);
+    }
 }

@@ -599,12 +599,15 @@
                 return;
             }
 
-            if (userItems.length === 0) {
+            // 수량이 0인 아이템 필터링
+            const availableItems = userItems.filter(userItem => userItem.quantity > 0);
+
+            if (availableItems.length === 0) {
                 inventoryList.innerHTML = '<div class="empty-message">인벤토리가 비어 있습니다.</div>';
                 return;
             }
 
-            const inventoryHtml = userItems.map(userItem => {
+            const inventoryHtml = availableItems.map(userItem => {
                 const item = userItem.item;
 
                 return `

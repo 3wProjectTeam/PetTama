@@ -20,21 +20,21 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PetService {
     private final PetRepository petRepository;
     private final UserRepository userRepository;
+    private final ItemService itemService;
 
-    public PetService(PetRepository petRepository, UserRepository userRepository) {
+    public PetService(PetRepository petRepository, UserRepository userRepository, ItemService itemService) {
         this.petRepository = petRepository;
         this.userRepository = userRepository;
+        this.itemService = itemService;
     }
 
     public List<PetGetDto> getAllPets(Long userId) {
-        // Get all pets and apply time-based updates
         List<Pet> pets = petRepository.findAllByUserId(userId);
         return pets.stream()
                 .map(pet -> {
-                    // Apply time-based stat updates before returning
                     Pet updatedPet = PetFSM.updatePetStatus(pet);
-                    petRepository.save(updatedPet); // Save the updated pet
-                    return createEnhancedDto(updatedPet); // Use new enhanced DTO
+                    petRepository.save(updatedPet);
+                    return createEnhancedDto(updatedPet);
                 })
                 .toList();
     }
@@ -44,11 +44,8 @@ public class PetService {
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
-
-        // Apply time-based updates
         Pet updatedPet = PetFSM.updatePetStatus(pet);
         petRepository.save(updatedPet);
-
         return createEnhancedDto(updatedPet);
     }
 
@@ -58,8 +55,6 @@ public class PetService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
-
-        // Create pet with random initial stats
         Pet pet = new Pet();
         pet.setUser(user);
         pet.setName(name);
@@ -71,29 +66,20 @@ public class PetService {
         pet.setThirsty(random.nextInt(20, 51));   // 20 ~ 50
         pet.setStress(random.nextInt(20, 51));    // 20 ~ 50
         pet.setLastUpdated(LocalDateTime.now());
-
         pet = petRepository.save(pet);
         return createEnhancedDto(pet);
     }
 
-    // 기존 메서드 유지 (호환성을 위해)
     @Transactional
-    public PetGetDto createPet(Long userId, String name) {
-        return createPet(userId, name, "CAT"); // 기본 타입 사용
-    }
-
-    @Transactional
-    public PetGetDto feed(Long userId, Long petId) {
+    public PetGetDto feed(Long userId, Long petId, Long itemId) {
+        if (itemId == null) {
+            throw new IllegalArgumentException("먹이 아이템이 필요합니다.");
+        }
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
-
-        // Use the FSM to handle feeding
-        Pet updatedPet = PetFSM.feed(pet);
-        petRepository.save(updatedPet);
-
-        return createEnhancedDto(updatedPet);
+        return itemService.useItem(userId, petId, itemId);
     }
 
     @Transactional
@@ -116,8 +102,6 @@ public class PetService {
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
-
-        // Use the FSM to handle brushing
         Pet updatedPet = PetFSM.brush(pet);
         petRepository.save(updatedPet);
 
