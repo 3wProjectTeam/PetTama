@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const petDetailName = document.getElementById('petDetailName');
     const petTypeOptions = document.querySelectorAll('.pet-type-option');
     const userNicknameDisplay = document.getElementById('userNicknameDisplay');
+    const inventoryList = document.getElementById('inventoryList');
+    const refreshInventoryButton = document.getElementById('refreshInventoryButton');
 
     // 스탯 관련 요소
     const statBars = {
@@ -40,12 +42,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const petStateBadge = document.querySelector('.pet-state-badge');
     const petRecommendation = document.getElementById('petRecommendation');
 
+    // 모달 관련 요소 (먹이 선택 모달)
+    const feedModal = document.getElementById('feedModal');
+    const feedItemsList = document.getElementById('feedItemsList');
+    const cancelFeedButton = document.getElementById('cancelFeedButton');
+
     // 상태 저장 변수
     let currentUserId = null;
     let currentPetId = null;
     let petsData = [];
     let selectedPetType = "DOG"; // 기본 선택 펫 타입
     let feedCooldownTimer = null; // 먹이 쿨타임 타이머
+    let userInventory = [];
 
     // 펫 이모지 매핑
     const petEmojis = {
@@ -184,7 +192,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 펫 목록 자동 로드
             fetchPets(user.id);
-
+            loadUserInventory(user.id);if (refreshInventoryButton) {
+                refreshInventoryButton.addEventListener('click', function() {
+                    if (currentUserId) {
+                        loadUserInventory(currentUserId);
+                    }
+                });
+            }
             return user;
         } catch (error) {
             console.error('사용자 정보 가져오기 실패:', error);
@@ -241,6 +255,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 선택한 펫 목록 항목 강조
             highlightSelectedPet(petId);
+
+            // 먹이 아이템 사용 가능 여부 확인
+            checkFeedAvailability(currentUserId);
         } catch (error) {
             console.error('펫 상세 정보 로드 실패:', error);
             showStatusMessage(actionStatusP, "펫 정보를 불러오는데 실패했습니다", 'error');
@@ -552,14 +569,6 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     async function performPetAction(petId, action) {
         try {
-            // 먹이 버튼 쿨타임 확인
-            if (action === 'feed') {
-                const feedButton = document.querySelector('.action-button[data-action="feed"]');
-                if (feedButton && feedButton.disabled) {
-                    throw new Error('먹이는 5시간에 한 번만 줄 수 있습니다. 쿨타임이 끝날 때까지 기다려주세요.');
-                }
-            }
-
             showStatusMessage(actionStatusP, getActionName(action) + " 중...", 'info');
 
             // 버튼 애니메이션
@@ -596,6 +605,138 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error(`${action} 액션 실패:`, error);
             showStatusMessage(actionStatusP, `${getActionName(action)} 실패: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * 사용자의 먹이 아이템 목록 불러오기
+     * @param {number} userId - 사용자 ID
+     */
+    async function loadFeedItems(userId) {
+        try {
+            const feedItemsList = document.getElementById('feedItemsList');
+            feedItemsList.innerHTML = '<div class="loading">먹이 아이템을 불러오는 중...</div>';
+
+            // 사용자 아이템 목록 불러오기
+            const userItems = await fetchAPI(`/api/items/user/${userId}`);
+
+            // 먹이 타입 아이템만 필터링
+            const feedItems = userItems.filter(item =>
+                item.item.itemType === 'FOOD' && item.quantity > 0
+            );
+
+            if (feedItems.length === 0) {
+                feedItemsList.innerHTML = `
+                    <div class="empty-message">
+                        <p>사용 가능한 먹이 아이템이 없습니다.</p>
+                        <a href="/shop" class="primary-btn">상점으로 이동</a>
+                    </div>
+                `;
+                return;
+            }
+
+            // 먹이 아이템 목록 렌더링
+            const itemsHtml = feedItems.map(userItem => {
+                const item = userItem.item;
+                return `
+                    <div class="feed-item" data-item-id="${item.id}">
+                        <div class="feed-item-icon">🍗</div>
+                        <div class="feed-item-info">
+                            <div class="feed-item-name">${item.name}</div>
+                            <div class="feed-item-description">${item.description}</div>
+                            <div class="feed-item-effects">
+                                <span>포만감 +${item.fullnessEffect}</span>
+                                ${item.happinessEffect > 0 ? `<span>행복도 +${item.happinessEffect}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="feed-item-quantity">
+                            ${userItem.quantity}개
+                        </div>
+                        <button class="use-feed-button primary-btn" data-item-id="${item.id}">
+                            사용하기
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            feedItemsList.innerHTML = itemsHtml;
+
+            // 아이템 사용 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.use-feed-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const itemId = parseInt(this.dataset.itemId, 10);
+                    useFeedItem(currentPetId, itemId);
+                    document.getElementById('feedModal').style.display = 'none';
+                });
+            });
+        } catch (error) {
+            console.error('먹이 아이템 로드 실패:', error);
+            document.getElementById('feedItemsList').innerHTML = `
+                <div class="error-message">먹이 아이템을 불러오는데 실패했습니다: ${error.message}</div>
+            `;
+        }
+    }
+
+    /**
+     * 먹이 아이템 사용
+     * @param {number} petId - 펫 ID
+     * @param {number} itemId - 아이템 ID
+     */
+    async function useFeedItem(petId, itemId) {
+        try {
+            showStatusMessage(actionStatusP, "먹이를 주는 중...", 'info');
+
+            // 아이템 사용 API 호출
+            const updatedPet = await fetchAPI(
+                `/api/items/use/${currentUserId}/${petId}/${itemId}`,
+                { method: 'POST' }
+            );
+
+            // 펫 정보 업데이트
+            displayPetDetails(updatedPet);
+
+            // 성공 메시지
+            showStatusMessage(actionStatusP, "먹이 주기 완료!", 'success');
+
+            // 로컬 펫 데이터 업데이트
+            const index = petsData.findIndex(p => p.id === petId);
+            if (index !== -1) {
+                petsData[index] = {...petsData[index], ...updatedPet};
+            }
+
+            // 성공 시 사용자 인벤토리 다시 로드 (다음 번 사용을 위해)
+            checkFeedAvailability(currentUserId);
+        } catch (error) {
+            console.error('먹이 주기 실패:', error);
+            showStatusMessage(actionStatusP, `먹이 주기 실패: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * 먹이 아이템 사용 가능 여부 확인
+     * @param {number} userId - 사용자 ID
+     */
+    async function checkFeedAvailability(userId) {
+        try {
+            // 사용자 아이템 목록 불러오기
+            const userItems = await fetchAPI(`/api/items/user/${userId}`);
+
+            // 먹이 타입 아이템 확인
+            const hasFeedItems = userItems.some(item =>
+                item.item.itemType === 'FOOD' && item.quantity > 0
+            );
+
+            // 먹이 주기 버튼 상태 설정
+            const feedButton = document.querySelector('.action-button[data-action="feed"]');
+            if (feedButton) {
+                if (!hasFeedItems) {
+                    feedButton.title = '먹이 아이템이 없습니다. 상점에서 구매하세요.';
+                } else {
+                    feedButton.title = '인벤토리에서 먹이를 선택하여 사용합니다.';
+                }
+            }
+        } catch (error) {
+            console.error('먹이 아이템 확인 실패:', error);
         }
     }
 
@@ -662,9 +803,44 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const action = button.dataset.action;
-            performPetAction(currentPetId, action);
+
+            // 먹이 주기는 모달을 통해 아이템 선택
+            if (action === 'feed') {
+                // 먹이 선택 모달 표시 전에 먹이 아이템 목록 불러오기
+                loadFeedItems(currentUserId);
+                document.getElementById('feedModal').style.display = 'flex';
+            } else {
+                // 다른 액션은 기존 방식대로 처리
+                performPetAction(currentPetId, action);
+            }
         });
     });
+
+    // 먹이 선택 취소 버튼 이벤트 리스너
+    if (cancelFeedButton) {
+        cancelFeedButton.addEventListener('click', function() {
+            feedModal.style.display = 'none';
+        });
+    }
+
+    // 인벤토리 새로고침 버튼 이벤트 리스너 (여기에 추가)
+    if (refreshInventoryButton) {
+        refreshInventoryButton.addEventListener('click', function() {
+            if (currentUserId) {
+                loadUserInventory(currentUserId);
+                showStatusMessage(actionStatusP, "인벤토리를 새로고침했습니다.", 'success');
+            }
+        });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    if (feedModal) {
+        feedModal.addEventListener('click', function(e) {
+            if (e.target === feedModal) {
+                feedModal.style.display = 'none';
+            }
+        });
+    }
 
     // 페이지 로드 시 사용자 정보 및 펫 목록 로드
     fetchCurrentUser();
@@ -761,5 +937,229 @@ function formatTimeRemaining(milliseconds) {
         return `${minutes}분 ${seconds}초 후`;
     } else {
         return `${seconds}초 후`;
+    }
+}
+// 아이템 사용
+async function useItem(userId, petId, itemId) {
+    try {
+        // API 요청 및 처리 로직...
+
+        // 성공 시 로컬 userItems 배열 업데이트
+        const usedItemIndex = userItems.findIndex(item => item.item.id === itemId);
+        if (usedItemIndex !== -1) {
+            userItems[usedItemIndex].quantity--;
+
+            // 수량이 0이 되면 목록 업데이트
+            if (userItems[usedItemIndex].quantity <= 0) {
+                // 옵션 1: 목록에서 제거
+                // userItems = userItems.filter(item => item.item.id !== itemId);
+
+                // 옵션 2: 수량이 0인 상태 유지하되 화면에서만 숨김
+                // (이 경우 displayInventory에서 필터링 처리)
+            }
+
+            // 인벤토리 디스플레이 업데이트
+            displayInventory();
+        }
+
+        // 나머지 처리 코드...
+    } catch (error) {
+        console.error('Error using item:', error);
+        showStatusMessage(inventoryStatusMessage, error.message, 'error');
+    }
+}
+/**
+ * 사용자의 인벤토리 불러오기
+ * @param {number} userId - 사용자 ID
+ */
+async function loadUserInventory(userId) {
+    try {
+        if (!userId) return;
+
+        inventoryList.innerHTML = '<div class="loading">인벤토리를 불러오는 중...</div>';
+
+        // 사용자 아이템 목록 불러오기
+        const userItems = await fetchAPI(`/api/items/user/${userId}`);
+
+        // 수량이 0보다 큰 아이템만 필터링
+        userInventory = userItems.filter(item => item.quantity > 0);
+
+        displayInventory();
+    } catch (error) {
+        console.error('인벤토리 로드 실패:', error);
+        inventoryList.innerHTML = `
+            <div class="error-message">인벤토리를 불러오는데 실패했습니다: ${error.message}</div>
+        `;
+    }
+}
+
+/**
+ * 인벤토리 표시
+ */
+function displayInventory() {
+    if (!currentUserId) {
+        inventoryList.innerHTML = '<div class="empty-message">인벤토리를 보려면 로그인하세요.</div>';
+        return;
+    }
+
+    if (userInventory.length === 0) {
+        inventoryList.innerHTML = `
+            <div class="empty-message">
+                <p>인벤토리가 비어 있습니다.</p>
+                <a href="/shop" class="primary-btn">상점 방문하기</a>
+            </div>
+        `;
+        return;
+    }
+
+    // 아이템 타입별 그룹화
+    const itemsByType = {};
+
+    userInventory.forEach(userItem => {
+        const item = userItem.item;
+        const type = item.itemType || 'OTHER';
+
+        if (!itemsByType[type]) {
+            itemsByType[type] = [];
+        }
+
+        itemsByType[type].push(userItem);
+    });
+
+    // 타입별로 분류하여 HTML 생성
+    let inventoryHtml = '';
+
+    // 타입 이름 매핑
+    const typeNames = {
+        'FOOD': '🍗 사료/음식',
+        'DRINK': '💧 물/음료',
+        'TOY': '🎮 장난감',
+        'GROOMING': '🧹 그루밍',
+        'MEDICINE': '💊 약/건강',
+        'ACCESSORY': '🧣 액세서리',
+        'OTHER': '📦 기타'
+    };
+
+    // 타입 순서 지정 (선호하는 순서대로)
+    const typeOrder = ['FOOD', 'DRINK', 'TOY', 'GROOMING', 'MEDICINE', 'ACCESSORY', 'OTHER'];
+
+    // 타입 순서대로 렌더링
+    typeOrder.forEach(type => {
+        if (itemsByType[type] && itemsByType[type].length > 0) {
+            inventoryHtml += `
+                <div class="inventory-type">
+                    <div class="inventory-type-header">${typeNames[type] || type}</div>
+                    <div class="inventory-type-items">
+            `;
+
+            // 해당 타입의 아이템들 렌더링
+            itemsByType[type].forEach(userItem => {
+                const item = userItem.item;
+
+                inventoryHtml += `
+                    <div class="inventory-item">
+                        <div class="inventory-item-icon">${getItemEmoji(item.itemType)}</div>
+                        <div class="inventory-item-info">
+                            <div class="inventory-item-name">${item.name}</div>
+                            <div class="inventory-item-effects">
+                                ${getItemEffects(item)}
+                            </div>
+                        </div>
+                        <div class="inventory-item-quantity">${userItem.quantity}개</div>
+                        ${currentPetId ? `
+                            <button class="inventory-use-button" data-item-id="${item.id}">
+                                사용하기
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            inventoryHtml += `
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    inventoryList.innerHTML = inventoryHtml;
+
+    // 아이템 사용 버튼에 이벤트 리스너 추가
+    if (currentPetId) {
+        document.querySelectorAll('.inventory-use-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemId = parseInt(this.dataset.itemId, 10);
+                useInventoryItem(currentPetId, itemId);
+            });
+        });
+    }
+}
+
+/**
+ * 아이템 이모지 가져오기
+ * @param {string} itemType - 아이템 타입
+ * @returns {string} - 이모지
+ */
+function getItemEmoji(itemType) {
+    const emojis = {
+        'FOOD': '🍗',
+        'DRINK': '💧',
+        'TOY': '🎮',
+        'GROOMING': '🧹',
+        'MEDICINE': '💊',
+        'ACCESSORY': '🧣',
+        'default': '📦'
+    };
+
+    return emojis[itemType] || emojis.default;
+}
+
+/**
+ * 아이템 효과 문자열 생성
+ * @param {Object} item - 아이템 객체
+ * @returns {string} - 효과 HTML
+ */
+function getItemEffects(item) {
+    const effects = [];
+
+    if (item.fullnessEffect > 0) effects.push(`포만감 +${item.fullnessEffect}`);
+    if (item.happinessEffect > 0) effects.push(`행복도 +${item.happinessEffect}`);
+    if (item.hydrationEffect > 0) effects.push(`수분 +${item.hydrationEffect}`);
+    if (item.energyEffect > 0) effects.push(`활력 +${item.energyEffect}`);
+    if (item.stressReduction > 0) effects.push(`스트레스 -${item.stressReduction}`);
+
+    return effects.map(effect => `<span class="effect">${effect}</span>`).join('');
+}
+
+/**
+ * 인벤토리에서 아이템 사용
+ * @param {number} petId - 펫 ID
+ * @param {number} itemId - 아이템 ID
+ */
+async function useInventoryItem(petId, itemId) {
+    try {
+        // 아이템 사용 API 호출
+        const updatedPet = await fetchAPI(
+            `/api/items/use/${currentUserId}/${petId}/${itemId}`,
+            { method: 'POST' }
+        );
+
+        // 펫 정보 업데이트
+        displayPetDetails(updatedPet);
+
+        // 성공 메시지
+        showStatusMessage(actionStatusP, "아이템 사용 완료!", 'success');
+
+        // 로컬 펫 데이터 업데이트
+        const index = petsData.findIndex(p => p.id === petId);
+        if (index !== -1) {
+            petsData[index] = {...petsData[index], ...updatedPet};
+        }
+
+        // 인벤토리 다시 로드
+        loadUserInventory(currentUserId);
+    } catch (error) {
+        console.error('아이템 사용 실패:', error);
+        showStatusMessage(actionStatusP, `아이템 사용 실패: ${error.message}`, 'error');
     }
 }

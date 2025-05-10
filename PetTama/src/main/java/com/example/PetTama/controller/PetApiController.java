@@ -54,8 +54,12 @@ public class PetApiController {
     }
 
     @PutMapping("{userId}/pets/{petId}/feed")
-    public ResponseEntity<PetGetDto> feed(@PathVariable Long userId, @PathVariable Long petId) {
-        PetGetDto dto = petSer.feed(userId, petId);
+    public ResponseEntity<PetGetDto> feed(
+            @PathVariable Long userId,
+            @PathVariable Long petId,
+            @RequestParam Long itemId) { // itemId 파라미터 추가
+
+        PetGetDto dto = petSer.feed(userId, petId, itemId);
         return ResponseEntity.ok(dto);
     }
 
