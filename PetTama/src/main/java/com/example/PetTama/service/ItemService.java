@@ -15,6 +15,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -95,21 +96,42 @@ public class ItemService {
     // Use an item on a pet
     @Transactional
     public PetGetDto useItem(Long userId, Long petId, Long itemId) {
-        // Find the pet
+        // 펫 찾기
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
 
-        // Find the user item
+        // 사용자 아이템 찾기
         UserItem userItem = userItemRepository.findByUserIdAndItemId(userId, itemId);
         if (userItem == null || userItem.getQuantity() <= 0) {
             throw new IllegalStateException("Item not available or insufficient quantity");
         }
 
-        // Get the item
+        // 아이템 정보 가져오기
         Item item = userItem.getItem();
 
+        // 음식 아이템에 대한 쿨타임 체크
+        if (item.getItemType().equals("FOOD")) {
+            LocalDateTime lastFed = pet.getLastFedTime(); // Pet 엔티티에 이 필드 추가 필요
+            LocalDateTime now = LocalDateTime.now();
+
+            if (lastFed != null && Duration.between(lastFed, now).toHours() < 5) {
+                long remainingHours = 5 - Duration.between(lastFed, now).toHours();
+                long remainingMinutes = 5 * 60 - Duration.between(lastFed, now).toMinutes();
+
+                // 남은 시간이 1시간 미만인 경우 분 단위로 표시
+                String timeMessage = remainingHours > 0 ?
+                        remainingHours + "시간 후" :
+                        (remainingMinutes % 60) + "분 후";
+
+                throw new IllegalStateException("먹이는 5시간에 한 번만 줄 수 있습니다. " +
+                        timeMessage + "에 다시 시도하세요.");
+            }
+
+            // 먹이 시간 업데이트
+            pet.setLastFedTime(now);
+        }
         // Apply item effects with price-based multiplier
         double multiplier = item.getEffectMultiplier();
 

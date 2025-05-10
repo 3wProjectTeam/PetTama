@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPetId = null;
     let petsData = [];
     let selectedPetType = "DOG"; // 기본 선택 펫 타입
+    let feedCooldownTimer = null; // 먹이 쿨타임 타이머
 
     // 펫 이모지 매핑
     const petEmojis = {
@@ -142,7 +143,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (!response.ok) {
-                throw new Error('API 요청 실패: ' + response.status);
+                const errorText = await response.text();
+                throw new Error(errorText || 'API 요청 실패: ' + response.status);
             }
 
             return await response.json();
@@ -308,6 +310,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 상태 정보 업데이트
         updatePetState(pet);
+
+        // 먹이 버튼 쿨타임 상태 업데이트
+        updateFeedButtonCooldown(pet);
     }
 
     /**
@@ -378,6 +383,97 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
+     * 먹이 버튼의 쿨타임 상태 업데이트
+     * @param {Object} pet - 펫 데이터
+     */
+    function updateFeedButtonCooldown(pet) {
+        const feedButton = document.querySelector('.action-button[data-action="feed"]');
+        if (!feedButton) return; // 버튼이 없는 경우 종료
+
+        const feedActionLabel = feedButton.querySelector('.action-label');
+        const originalLabel = "밥 주기";
+
+        // 먹이 버튼 초기화
+        feedButton.disabled = false;
+        feedButton.classList.remove('cooldown');
+        feedActionLabel.innerHTML = originalLabel;
+
+        // 마지막 먹이 시간이 있는 경우 쿨타임 계산
+        if (pet.lastFedTime) {
+            const lastFed = new Date(pet.lastFedTime);
+            const now = new Date();
+            const diffMs = now - lastFed;
+            const diffHours = diffMs / (1000 * 60 * 60);
+
+            // 5시간 쿨타임 적용
+            if (diffHours < 5) {
+                // 남은 시간 계산 (시:분 형식, 초 단위 제외)
+                const remainingMs = (5 * 60 * 60 * 1000) - diffMs;
+                const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+                const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                // 남은 시간 형식화 (초 단위 표시 제거)
+                let timeText = '';
+                if (remainingHours > 0) {
+                    timeText = `${remainingHours}시간 ${remainingMinutes}분 후`;
+                } else {
+                    timeText = `${remainingMinutes}분 후`;
+                }
+
+                // 먹이 버튼 비활성화 및 남은 시간 표시
+                feedButton.disabled = true;
+                feedButton.classList.add('cooldown');
+                feedActionLabel.innerHTML = `밥 주기<br><span class="cooldown-text">${timeText}</span>`;
+
+                // 기존 타이머가 있으면 정리
+                if (feedCooldownTimer) {
+                    clearInterval(feedCooldownTimer);
+                }
+
+                // 1분마다 남은 시간 업데이트하는 타이머 설정 (1000ms * 60 = 60000ms = 1분)
+                feedCooldownTimer = setInterval(() => {
+                    const updatedNow = new Date();
+                    const updatedDiffMs = updatedNow - lastFed;
+                    const updatedRemainingMs = (5 * 60 * 60 * 1000) - updatedDiffMs;
+
+                    if (updatedRemainingMs <= 0) {
+                        // 쿨타임 종료
+                        clearInterval(feedCooldownTimer);
+                        feedCooldownTimer = null;
+
+                        // 버튼 상태 복원
+                        feedButton.disabled = false;
+                        feedButton.classList.remove('cooldown');
+                        feedActionLabel.innerHTML = originalLabel;
+                        return;
+                    }
+
+                    // 남은 시간 업데이트 (초 단위 표시 제거)
+                    const updatedHours = Math.floor(updatedRemainingMs / (1000 * 60 * 60));
+                    const updatedMinutes = Math.floor((updatedRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                    let updatedTimeText = '';
+                    if (updatedHours > 0) {
+                        updatedTimeText = `${updatedHours}시간 ${updatedMinutes}분 후`;
+                    } else {
+                        updatedTimeText = `${updatedMinutes}분 후`;
+                    }
+
+                    // 버튼 텍스트 업데이트
+                    feedActionLabel.innerHTML = `밥 주기<br><span class="cooldown-text">${updatedTimeText}</span>`;
+                }, 60000); // 1분마다 업데이트 (1000ms * 60 = 60000ms)
+
+            } else {
+                // 쿨타임이 지났으면 타이머 초기화
+                if (feedCooldownTimer) {
+                    clearInterval(feedCooldownTimer);
+                    feedCooldownTimer = null;
+                }
+            }
+        }
+    }
+
+    /**
      * 펫 상태 결정 (백엔드 상태 정보가 없는 경우 대비)
      * @param {Object} pet - 펫 데이터
      * @returns {string} - 결정된 상태
@@ -404,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getDefaultRecommendation(state) {
         switch (state) {
             case 'HUNGRY':
-                return '펫이 배고파합니다! 밥을 주세요.';
+                return '펫이 배고파합니다! 상점에서 음식을 구매해 주세요.';
             case 'THIRSTY':
                 return '펫이 목말라합니다! 물을 주세요.';
             case 'TIRED':
@@ -445,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchPets(currentUserId);
         } catch (error) {
             console.error('펫 생성 실패:', error);
-            showStatusMessage(creationStatusP, '펫 생성 실패', 'error');
+            showStatusMessage(creationStatusP, '펫 생성 실패: ' + error.message, 'error');
         }
     }
 
@@ -456,6 +552,14 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     async function performPetAction(petId, action) {
         try {
+            // 먹이 버튼 쿨타임 확인
+            if (action === 'feed') {
+                const feedButton = document.querySelector('.action-button[data-action="feed"]');
+                if (feedButton && feedButton.disabled) {
+                    throw new Error('먹이는 5시간에 한 번만 줄 수 있습니다. 쿨타임이 끝날 때까지 기다려주세요.');
+                }
+            }
+
             showStatusMessage(actionStatusP, getActionName(action) + " 중...", 'info');
 
             // 버튼 애니메이션
@@ -491,7 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error(`${action} 액션 실패:`, error);
-            showStatusMessage(actionStatusP, `${getActionName(action)} 실패`, 'error');
+            showStatusMessage(actionStatusP, `${getActionName(action)} 실패: ${error.message}`, 'error');
         }
     }
 
@@ -564,6 +668,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 페이지 로드 시 사용자 정보 및 펫 목록 로드
     fetchCurrentUser();
+
+    // 페이지 벗어날 때 타이머 정리
+    window.addEventListener('beforeunload', function() {
+        if (feedCooldownTimer) {
+            clearInterval(feedCooldownTimer);
+        }
+    });
 });
 
 // 로그인 상태 표시
@@ -589,6 +700,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('로그인 상태 확인 실패:', error);
     }
 });
+
 /**
  * 환영 메시지 표시
  * @param {string} nickname - 사용자 닉네임
@@ -606,5 +718,48 @@ function displayWelcomeMessage(nickname) {
             existingMsg.remove();
         }
         petListSection.prepend(welcomeMsg);
+    }
+}
+
+/**
+ * 상점 페이지의 먹이 아이템 버튼 업데이트 (상점 페이지에 있을 경우)
+ * @param {string} timeText - 표시할 시간 텍스트
+ * @param {boolean} isDisabled - 버튼 비활성화 여부
+ */
+function updateShopFeedButtons(timeText, isDisabled) {
+    // 상점 페이지의 먹이 아이템 사용 버튼을 찾음
+    const feedItemButtons = document.querySelectorAll('.use-button[data-item-type="FOOD"]');
+
+    if (feedItemButtons.length > 0) {
+        feedItemButtons.forEach(button => {
+            button.disabled = isDisabled;
+            button.style.opacity = isDisabled ? 0.5 : 1;
+            button.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+
+            if (isDisabled) {
+                button.title = `먹이는 ${timeText} 사용 가능합니다`;
+            } else {
+                button.title = '';
+            }
+        });
+    }
+}
+
+/**
+ * 타이머 시간 형식화
+ * @param {number} milliseconds - 밀리초
+ * @returns {string} - 형식화된 시간 문자열
+ */
+function formatTimeRemaining(milliseconds) {
+    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+
+    if (hours > 0) {
+        return `${hours}시간 ${minutes}분 후`;
+    } else if (minutes > 0) {
+        return `${minutes}분 ${seconds}초 후`;
+    } else {
+        return `${seconds}초 후`;
     }
 }
