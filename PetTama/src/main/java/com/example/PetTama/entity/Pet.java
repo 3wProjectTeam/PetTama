@@ -23,7 +23,7 @@ public class Pet {
     private String name;
 
     @Column(name = "pet_type")
-    private String petType;  // 새로 추가된 필드: "DOG", "CAT"
+    private String petType;
 
     @Column(name = "hp")
     private int hp;
@@ -46,16 +46,18 @@ public class Pet {
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
+    @Column(name = "last_fed_time")
+    private LocalDateTime lastFedTime;
+
     /**
      * Converts this Pet entity to a DTO with additional state information
      * @return Enhanced PetGetDto with current state and recommendations
      */
     public PetGetDto toDto(Pet pet) {
-        // Create the basic DTO with all stats
         PetGetDto dto = new PetGetDto(
                 pet.getId(),
                 pet.getName(),
-                pet.getPetType(), // petType 필드 추가
+                pet.getPetType(),
                 pet.getHp(),
                 pet.getFullness(),
                 pet.getHappiness(),
@@ -63,15 +65,14 @@ public class Pet {
                 pet.getThirsty(),
                 pet.getStress()
         );
-
-        // Add the current state
+        // 현재 상태 추가
         PetFSM.PetState currentState = PetFSM.getCurrentState(pet);
         dto.setState(currentState);
-
-        // Add recommendation based on current state
+        // 권장 사항 추가
         String recommendation = PetFSM.getActionRecommendation(pet);
         dto.setRecommendation(recommendation);
-
+        // 마지막 먹이 시간 추가
+        dto.setLastFedTime(pet.getLastFedTime());
         return dto;
     }
 }

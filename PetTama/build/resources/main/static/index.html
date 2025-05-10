@@ -7,64 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        /* 펫 타입 선택기 스타일 */
-        .pet-type-selector {
-            display: flex;
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .pet-type-option {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            padding: 0.75rem;
-            border-radius: var(--radius-md);
-            transition: all var(--transition-fast);
-            border: 2px solid transparent;
-        }
-
-        .pet-type-option:hover {
-            background-color: var(--primary-light);
-        }
-
-        .pet-type-option.selected {
-            border-color: var(--primary-color);
-            background-color: var(--primary-light);
-        }
-
-        .pet-type-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .pet-type-label {
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-
-        .welcome-message {
-            background-color: var(--primary-light);
-            color: var(--primary-dark);
-            padding: 0.75rem 1.2rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
-
-        .user-nickname {
-            font-weight: 600;
-            color: var(--primary-color);
-            font-size: 1.1rem;
-            margin-right: 1rem;
-        }
-
-        .user-greeting {
-            font-weight: 600;
-            color: var(--primary-color);
-            margin-right: 1rem;
-        }
+        /* 기존 스타일... */
     </style>
 </head>
 <body>
@@ -75,7 +18,9 @@
     </header>
 
     <div class="main-content">
+        <!-- 좌측 패널 (펫 생성 및 목록) -->
         <div class="left-panel">
+            <!-- 펫 생성 섹션 -->
             <div class="pet-creation">
                 <h2>새 펫 만들기</h2>
                 <div class="input-group">
@@ -101,6 +46,7 @@
                 <p id="creationStatus" class="status-message"></p>
             </div>
 
+            <!-- 펫 목록 섹션 -->
             <div class="pet-list-section">
                 <h2>내 펫 목록</h2>
                 <ul id="petList" class="pet-list">
@@ -109,6 +55,7 @@
             </div>
         </div>
 
+        <!-- 우측 패널 (펫 상세 정보) -->
         <div class="right-panel">
             <div class="pet-details-section" style="display: none;">
                 <div class="pet-header">
@@ -122,6 +69,7 @@
                 <div class="pet-stats">
                     <h3>상태</h3>
                     <div class="stat-bars">
+                        <!-- 스탯 바 HTML -->
                         <div class="stat-bar-container">
                             <span class="stat-label">HP</span>
                             <div class="stat-bar">
@@ -182,30 +130,40 @@
                 <div class="pet-actions">
                     <h3>돌보기</h3>
                     <div class="action-buttons">
-                        <button class="action-button" data-action="feed">
+                        <!-- 먹이 버튼에 title 속성과 구조 변경 -->
+                        <button class="action-button" data-action="feed" title="먹이는 상점에서 구매하여 5시간에 한 번만 줄 수 있습니다">
                             <span class="action-icon">🍔</span>
-                            <span class="action-label">밥 주기</span>
+                            <span class="action-label">
+                                밥 주기
+                                <!-- 쿨타임 텍스트가 여기에 동적으로 추가됩니다 -->
+                            </span>
                         </button>
+
                         <button class="action-button" data-action="water">
                             <span class="action-icon">💧</span>
                             <span class="action-label">물 주기</span>
                         </button>
+
                         <button class="action-button" data-action="play">
                             <span class="action-icon">🎮</span>
                             <span class="action-label">놀아주기</span>
                         </button>
+
                         <button class="action-button" data-action="brush">
                             <span class="action-icon">🧹</span>
                             <span class="action-label">빗질하기</span>
                         </button>
+
                         <button class="action-button" data-action="sleep">
                             <span class="action-icon">💤</span>
                             <span class="action-label">재우기</span>
                         </button>
+
                         <button class="action-button" data-action="snack">
                             <span class="action-icon">🍪</span>
                             <span class="action-label">간식 주기</span>
                         </button>
+
                         <button class="action-button" data-action="walk">
                             <span class="action-icon">🚶</span>
                             <span class="action-label">산책하기</span>
@@ -216,6 +174,7 @@
             </div>
         </div>
     </div>
+
     <div class="navigation">
         <a href="/home" class="navigation-button">홈으로</a>
         <a href="/board" class="navigation-button">게시판</a>
@@ -225,6 +184,7 @@
             <a href="/auth/register" class="navigation-button">회원가입</a>
         </div>
     </div>
+
     <footer>
         <p>&copy; 2025 PetTama - 만든이: 당신</p>
     </footer>

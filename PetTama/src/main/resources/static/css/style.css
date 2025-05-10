@@ -487,4 +487,22 @@ footer {
     .action-buttons {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
+    /* 쿨타임 버튼을 위한 추가 스타일 */
+    .action-button.cooldown {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .cooldown-text {
+        font-size: 0.8rem;
+        color: var(--primary-dark);
+        font-weight: normal;
+    }
+
+    .action-button[data-action="feed"] .action-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1.2;
+    }
 }

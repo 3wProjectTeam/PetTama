@@ -176,7 +176,7 @@ public class PetFSM {
         int newHp = pet.getHp() + hpChange;
         pet.setHp(Math.max(0, Math.min(MAX_VALUE, newHp)));
     }
-    
+
     /**
      * Performs the feed action and updates pet state
      * @param pet The pet to feed
@@ -185,18 +185,35 @@ public class PetFSM {
     public static Pet feed(Pet pet) {
         // Update time-based stats first
         updatePetStatus(pet);
-        
+
+        // 이미 존재하는지 확인
+        if (pet.getLastFedTime() != null) {
+            LocalDateTime lastFed = pet.getLastFedTime();
+            LocalDateTime now = LocalDateTime.now();
+            long hoursPassed = java.time.Duration.between(lastFed, now).toHours();
+
+            // 5시간 이내에 다시 먹이를 주려는 경우
+            if (hoursPassed < 5) {
+                // 상태는 변경하지 않고 마지막 업데이트 시간만 설정
+                pet.setLastUpdated(LocalDateTime.now());
+                return pet;
+            }
+        }
+
         // Apply feeding effects
         int newFullness = Math.min(MAX_VALUE, pet.getFullness() + 20);
         pet.setFullness(newFullness);
-        
+
         // Decrease thirst slightly
         int newThirsty = Math.max(0, pet.getThirsty() - 5);
         pet.setThirsty(newThirsty);
-        
+
+        // 먹이 시간 업데이트
+        pet.setLastFedTime(LocalDateTime.now());
+
         // Update last interaction time
         pet.setLastUpdated(LocalDateTime.now());
-        
+
         return pet;
     }
     
