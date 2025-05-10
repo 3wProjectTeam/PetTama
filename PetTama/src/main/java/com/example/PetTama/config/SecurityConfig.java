@@ -15,21 +15,32 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * Spring Security 필터 체인 설정
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/home", "/index.html", "/*.html").permitAll()
+                        .requestMatchers("/", "/home", "/welcome", "/*.html").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/auth/**", "/api/auth/**").permitAll()
-                        .requestMatchers("/api/user-nums/**").permitAll() // 펫 API 접근 허용
-                        .requestMatchers("/api/posts/**").permitAll() // 게시판 API 접근 허용
-                        .requestMatchers("/api/items/**").permitAll() // 아이템 API 접근 허용
-                        .requestMatchers("/board/**", "/shop/**").permitAll() // 게시판, 상점 접근 허용
+                        .requestMatchers("/api/posts/**").permitAll()
+                        .requestMatchers("/api/items/**").permitAll()
+                        .requestMatchers("/board/**", "/shop/**").permitAll()
+                        .requestMatchers("/api/user-nums/**").authenticated()
                         .anyRequest().authenticated()
                 )
-                // formLogin 설정 제거하고 API만 사용
+                .formLogin(form -> form
+                        .loginPage("/auth/login")
+                        .loginProcessingUrl("/api/auth/login")
+                        .usernameParameter("email")
+                        .passwordParameter("password")
+                        .defaultSuccessUrl("/home", true)
+                        .failureUrl("/auth/login?error=true")
+                        .permitAll()
+                )
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessUrl("/home")

@@ -10,4 +10,8 @@ public class PetTamaViewController {
     public String home() {
         return "forward:/index.html";
     }
+    @GetMapping("/welcome")
+    public String welcome() {
+        return "forward:/home.html";
+    }
 }

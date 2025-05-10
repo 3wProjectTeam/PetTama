@@ -216,6 +216,24 @@
             color: white;
             display: block;
         }
+
+        .login-required-message {
+            text-align: center;
+            padding: 2rem;
+            background-color: var(--primary-light);
+            border-radius: var(--radius-md);
+        }
+
+        .login-required-message a {
+            color: var(--primary-color);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .user-greeting {
+            font-weight: 600;
+            margin-right: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -228,52 +246,62 @@
             <a href="/board" class="navigation-button">게시판</a>
             <a href="/shop" class="navigation-button">상점</a>
         </div>
+        <div id="authButtons">
+            <a href="/auth/login" class="navigation-button">로그인</a>
+            <a href="/auth/register" class="navigation-button">회원가입</a>
+        </div>
     </header>
 
     <div class="shop-container">
         <div class="shop-header">
             <h2>상점</h2>
-            <div class="user-info">
-                <label for="userIdInput">사용자 ID:</label>
-                <input type="number" id="userIdInput" value="1" style="width: 60px; margin-right: 10px;">
-                <button id="loadUserButton" class="primary-btn">정보 불러오기</button>
+            <div id="userInfo" class="user-info">
+                <!-- 사용자 정보가 여기에 표시됩니다 -->
             </div>
         </div>
 
-        <div class="tab-container" id="itemTypeTabs">
-            <button class="tab-button active" data-type="all">전체</button>
-            <button class="tab-button" data-type="FOOD">사료</button>
-            <button class="tab-button" data-type="DRINK">물/음료</button>
-            <button class="tab-button" data-type="TOY">장난감</button>
-            <button class="tab-button" data-type="GROOMING">그루밍</button>
-            <button class="tab-button" data-type="MEDICINE">약/건강</button>
-            <button class="tab-button" data-type="ACCESSORY">액세서리</button>
-        </div>
+        <div id="shopContent">
+            <div class="tab-container" id="itemTypeTabs">
+                <button class="tab-button active" data-type="all">전체</button>
+                <button class="tab-button" data-type="FOOD">사료</button>
+                <button class="tab-button" data-type="DRINK">물/음료</button>
+                <button class="tab-button" data-type="TOY">장난감</button>
+                <button class="tab-button" data-type="GROOMING">그루밍</button>
+                <button class="tab-button" data-type="MEDICINE">약/건강</button>
+                <button class="tab-button" data-type="ACCESSORY">액세서리</button>
+            </div>
 
-        <div id="itemsGrid" class="item-grid">
-            <!-- 아이템들이 여기에 동적으로 로드됩니다 -->
-            <div class="loading">상품을 불러오는 중...</div>
-        </div>
+            <div id="itemsGrid" class="item-grid">
+                <!-- 아이템들이 여기에 동적으로 로드됩니다 -->
+                <div class="loading">상품을 불러오는 중...</div>
+            </div>
 
-        <p id="shopStatusMessage" class="status-message"></p>
+            <p id="shopStatusMessage" class="status-message"></p>
 
-        <div class="inventory-section">
-            <div class="inventory-header">
-                <h3>내 인벤토리</h3>
-                <div>
-                    <label for="petSelector">펫 선택:</label>
-                    <select id="petSelector">
-                        <option value="">펫을 선택하세요</option>
-                    </select>
+            <div class="inventory-section">
+                <div class="inventory-header">
+                    <h3>내 인벤토리</h3>
+                    <div>
+                        <label for="petSelector">펫 선택:</label>
+                        <select id="petSelector">
+                            <option value="">펫을 선택하세요</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
 
-            <div id="inventoryList" class="inventory-list">
-                <!-- 인벤토리 아이템들이 여기에 동적으로 로드됩니다 -->
-                <div class="empty-message">인벤토리를 불러오는 중...</div>
-            </div>
+                <div id="inventoryList" class="inventory-list">
+                    <!-- 인벤토리 아이템들이 여기에 동적으로 로드됩니다 -->
+                    <div class="empty-message">인벤토리를 불러오는 중...</div>
+                </div>
 
-            <p id="inventoryStatusMessage" class="status-message"></p>
+                <p id="inventoryStatusMessage" class="status-message"></p>
+            </div>
+        </div>
+
+        <div id="loginRequired" class="login-required-message" style="display: none;">
+            <h3>로그인이 필요합니다</h3>
+            <p>상점을 이용하려면 로그인이 필요합니다.</p>
+            <a href="/auth/login" class="primary-btn">로그인하기</a>
         </div>
     </div>
 </div>
@@ -281,14 +309,16 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // DOM 요소
-        const userIdInput = document.getElementById('userIdInput');
-        const loadUserButton = document.getElementById('loadUserButton');
+        const userInfo = document.getElementById('userInfo');
         const itemTypeTabs = document.getElementById('itemTypeTabs');
         const itemsGrid = document.getElementById('itemsGrid');
         const petSelector = document.getElementById('petSelector');
         const inventoryList = document.getElementById('inventoryList');
         const shopStatusMessage = document.getElementById('shopStatusMessage');
         const inventoryStatusMessage = document.getElementById('inventoryStatusMessage');
+        const shopContent = document.getElementById('shopContent');
+        const loginRequired = document.getElementById('loginRequired');
+        const authButtons = document.getElementById('authButtons');
 
         // 상태 변수
         let currentUserId = null;
@@ -297,6 +327,8 @@
         let allItems = [];
         let userItems = [];
         let userPets = [];
+        let isLoggedIn = false;
+        let currentUser = null;
 
         // 아이템 타입별 아이콘
         const itemTypeIcons = {
@@ -319,10 +351,68 @@
         };
 
         // 인벤토리 섹션 초기 메시지
-        inventoryList.innerHTML = '<div class="empty-message">사용자 정보를 불러와 주세요.</div>';
+        inventoryList.innerHTML = '<div class="empty-message">사용자 정보를 불러오는 중...</div>';
 
-        // 페이지 로드 시 바로 상품 정보를 로드
-        loadAllItems();
+        // 페이지 로드 시 로그인 상태 확인
+        checkAuthStatus();
+
+        // 로그인 상태 확인
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/user');
+
+                if (response.ok) {
+                    // 로그인된 상태
+                    currentUser = await response.json();
+                    currentUserId = currentUser.id;
+                    isLoggedIn = true;
+
+                    // 사용자 정보 표시
+                    userInfo.innerHTML = `<span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>`;
+
+                    // 인증 버튼 업데이트
+                    authButtons.innerHTML = `
+                        <span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>
+                        <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
+                            <button type="submit" class="navigation-button">로그아웃</button>
+                        </form>
+                    `;
+
+                    // 상점 컨텐츠 표시 및 데이터 로드
+                    shopContent.style.display = 'block';
+                    loginRequired.style.display = 'none';
+
+                    // 상품 및 사용자 데이터 로드
+                    loadAllItems();
+                    loadUserData();
+                } else {
+                    // 로그인되지 않은 상태
+                    isLoggedIn = false;
+
+                    // 인증 버튼 업데이트
+                    authButtons.innerHTML = `
+                        <a href="/auth/login" class="navigation-button">로그인</a>
+                        <a href="/auth/register" class="navigation-button">회원가입</a>
+                    `;
+
+                    // 상품은 로드하되 구매/사용 기능 제한
+                    loadAllItems();
+
+                    // 로그인 필요 메시지 표시
+                    shopContent.style.display = 'block';
+                    loginRequired.style.display = 'none';
+
+                    // 인벤토리 메시지 업데이트
+                    inventoryList.innerHTML = '<div class="empty-message">로그인이 필요합니다.</div>';
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+
+                // 오류 발생 시 기본적으로 상품만 표시
+                loadAllItems();
+                inventoryList.innerHTML = '<div class="empty-message">사용자 정보를 불러오는데 실패했습니다.</div>';
+            }
+        }
 
         // 모든 상품 로드
         async function loadAllItems() {
@@ -346,23 +436,20 @@
 
         // 유저 정보 로드
         async function loadUserData() {
-            const userId = parseInt(userIdInput.value, 10);
-            if (!userId) {
-                showStatusMessage(shopStatusMessage, '유효한 사용자 ID를 입력하세요.', 'error');
+            if (!isLoggedIn || !currentUserId) {
+                showStatusMessage(shopStatusMessage, '로그인이 필요합니다.', 'error');
                 return;
             }
-
-            currentUserId = userId;
 
             // 인벤토리 로딩 메시지 표시
             inventoryList.innerHTML = '<div class="empty-message">인벤토리를 불러오는 중...</div>';
 
             try {
                 // 사용자의 펫 목록 로드
-                await loadUserPets(userId);
+                await loadUserPets(currentUserId);
 
                 // 사용자의 인벤토리 로드
-                await loadUserInventory(userId);
+                await loadUserInventory(currentUserId);
 
                 showStatusMessage(shopStatusMessage, '사용자 정보를 불러왔습니다.', 'success');
             } catch (error) {
@@ -481,7 +568,9 @@
                 </div>
               `).join('')}
             </div>
-            <button class="buy-button" data-item-id="${item.id}">구매하기</button>
+            <button class="buy-button" data-item-id="${item.id}" ${!isLoggedIn ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                ${isLoggedIn ? '구매하기' : '로그인 필요'}
+            </button>
           </div>
         </div>
       `;
@@ -492,8 +581,8 @@
             // 구매 버튼에 이벤트 리스너 추가
             document.querySelectorAll('.buy-button').forEach(button => {
                 button.addEventListener('click', function() {
-                    if (!currentUserId) {
-                        showStatusMessage(shopStatusMessage, '먼저 사용자 정보를 불러오세요.', 'error');
+                    if (!isLoggedIn) {
+                        showStatusMessage(shopStatusMessage, '구매하려면 로그인이 필요합니다.', 'error');
                         return;
                     }
 
@@ -505,6 +594,11 @@
 
         // 인벤토리 표시
         function displayInventory() {
+            if (!isLoggedIn) {
+                inventoryList.innerHTML = '<div class="empty-message">인벤토리를 보려면 로그인하세요.</div>';
+                return;
+            }
+
             if (userItems.length === 0) {
                 inventoryList.innerHTML = '<div class="empty-message">인벤토리가 비어 있습니다.</div>';
                 return;
@@ -638,9 +732,6 @@
                 displayItems(allItems);
             }
         });
-
-        // 사용자 데이터 로드 버튼 이벤트 리스너
-        loadUserButton.addEventListener('click', loadUserData);
     });
 </script>
 </body>
