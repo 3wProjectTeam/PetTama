@@ -129,68 +129,6 @@
             background-color: var(--primary-dark);
         }
 
-        .inventory-section {
-            margin-top: 2rem;
-        }
-
-        .inventory-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .inventory-list {
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-        }
-
-        .inventory-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .inventory-item:last-child {
-            border-bottom: none;
-        }
-
-        .item-icon {
-            font-size: 2rem;
-            margin-right: 1rem;
-        }
-
-        .item-info {
-            flex-grow: 1;
-        }
-
-        .item-quantity {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-            font-weight: 700;
-            padding: 0.25rem 0.75rem;
-            border-radius: 1rem;
-            margin-right: 1rem;
-        }
-
-        .use-button {
-            padding: 0.35rem 0.75rem;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.875rem;
-            transition: background-color var(--transition-fast);
-        }
-
-        .use-button:hover {
-            background-color: var(--primary-dark);
-        }
-
         .empty-message {
             padding: 2rem;
             text-align: center;
@@ -233,6 +171,37 @@
         .user-greeting {
             font-weight: 600;
             margin-right: 1rem;
+        }
+
+        .inventory-button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .inventory-button {
+            display: flex;
+            align-items: center;
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .inventory-button:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .inventory-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
         }
     </style>
 </head>
@@ -278,23 +247,12 @@
 
             <p id="shopStatusMessage" class="status-message"></p>
 
-            <div class="inventory-section">
-                <div class="inventory-header">
-                    <h3>내 인벤토리</h3>
-                    <div>
-                        <label for="petSelector">펫 선택:</label>
-                        <select id="petSelector">
-                            <option value="">펫을 선택하세요</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="inventoryList" class="inventory-list">
-                    <!-- 인벤토리 아이템들이 여기에 동적으로 로드됩니다 -->
-                    <div class="empty-message">인벤토리를 불러오는 중...</div>
-                </div>
-
-                <p id="inventoryStatusMessage" class="status-message"></p>
+            <!-- 인벤토리 섹션 대신 인벤토리 페이지로 이동하는 버튼 -->
+            <div class="inventory-button-container">
+                <a href="/inventory.html" class="inventory-button">
+                    <span class="inventory-icon">🎒</span>
+                    내 인벤토리 확인하기
+                </a>
             </div>
         </div>
 
@@ -312,21 +270,15 @@
         const userInfo = document.getElementById('userInfo');
         const itemTypeTabs = document.getElementById('itemTypeTabs');
         const itemsGrid = document.getElementById('itemsGrid');
-        const petSelector = document.getElementById('petSelector');
-        const inventoryList = document.getElementById('inventoryList');
         const shopStatusMessage = document.getElementById('shopStatusMessage');
-        const inventoryStatusMessage = document.getElementById('inventoryStatusMessage');
         const shopContent = document.getElementById('shopContent');
         const loginRequired = document.getElementById('loginRequired');
         const authButtons = document.getElementById('authButtons');
 
         // 상태 변수
         let currentUserId = null;
-        let currentPetId = null;
         let currentItemType = 'all';
         let allItems = [];
-        let userItems = [];
-        let userPets = [];
         let isLoggedIn = false;
         let currentUser = null;
 
@@ -349,9 +301,6 @@
             'energyEffect': '에너지 회복',
             'stressReduction': '스트레스 감소'
         };
-
-        // 인벤토리 섹션 초기 메시지
-        inventoryList.innerHTML = '<div class="empty-message">사용자 정보를 불러오는 중...</div>';
 
         // 페이지 로드 시 로그인 상태 확인
         checkAuthStatus();
@@ -384,7 +333,6 @@
 
                     // 상품 및 사용자 데이터 로드
                     loadAllItems();
-                    loadUserData();
                 } else {
                     // 로그인되지 않은 상태
                     isLoggedIn = false;
@@ -401,16 +349,12 @@
                     // 로그인 필요 메시지 표시
                     shopContent.style.display = 'block';
                     loginRequired.style.display = 'none';
-
-                    // 인벤토리 메시지 업데이트
-                    inventoryList.innerHTML = '<div class="empty-message">로그인이 필요합니다.</div>';
                 }
             } catch (error) {
                 console.error('Error checking auth status:', error);
 
                 // 오류 발생 시 기본적으로 상품만 표시
                 loadAllItems();
-                inventoryList.innerHTML = '<div class="empty-message">사용자 정보를 불러오는데 실패했습니다.</div>';
             }
         }
 
@@ -432,95 +376,6 @@
                 console.error('Error loading items:', error);
                 itemsGrid.innerHTML = '<div class="empty-message">상품을 불러오는데 실패했습니다.</div>';
             }
-        }
-
-        // 유저 정보 로드
-        async function loadUserData() {
-            if (!isLoggedIn || !currentUserId) {
-                showStatusMessage(shopStatusMessage, '로그인이 필요합니다.', 'error');
-                return;
-            }
-
-            // 인벤토리 로딩 메시지 표시
-            inventoryList.innerHTML = '<div class="empty-message">인벤토리를 불러오는 중...</div>';
-
-            try {
-                // 사용자의 펫 목록 로드
-                await loadUserPets(currentUserId);
-
-                // 사용자의 인벤토리 로드
-                await loadUserInventory(currentUserId);
-
-                showStatusMessage(shopStatusMessage, '사용자 정보를 불러왔습니다.', 'success');
-            } catch (error) {
-                console.error('Error loading user data:', error);
-                showStatusMessage(shopStatusMessage, error.message, 'error');
-                inventoryList.innerHTML = '<div class="empty-message">인벤토리를 불러오는데 실패했습니다.</div>';
-            }
-        }
-
-        // 사용자의 펫 목록 로드
-        async function loadUserPets(userId) {
-            try {
-                const petsResponse = await fetch(`/api/user-nums/${userId}`);
-                if (!petsResponse.ok) {
-                    throw new Error('펫 목록을 불러오는데 실패했습니다.');
-                }
-
-                userPets = await petsResponse.json();
-
-                // 펫 선택기 업데이트
-                updatePetSelector();
-            } catch (error) {
-                console.error('Error loading pets:', error);
-                showStatusMessage(inventoryStatusMessage, error.message, 'error');
-            }
-        }
-
-        // 사용자의 인벤토리 로드
-        async function loadUserInventory(userId) {
-            try {
-                const inventoryResponse = await fetch(`/api/items/user/${userId}`);
-                if (!inventoryResponse.ok) {
-                    throw new Error('인벤토리를 불러오는데 실패했습니다.');
-                }
-
-                userItems = await inventoryResponse.json();
-                displayInventory();
-            } catch (error) {
-                console.error('Error loading inventory:', error);
-                showStatusMessage(inventoryStatusMessage, error.message, 'error');
-            }
-        }
-
-        // 펫 선택기 업데이트
-        function updatePetSelector() {
-            petSelector.innerHTML = '<option value="">펫을 선택하세요</option>';
-
-            userPets.forEach(pet => {
-                const option = document.createElement('option');
-                option.value = pet.id;
-                option.textContent = `${pet.name} (상태: ${getStateSummary(pet)})`;
-                petSelector.appendChild(option);
-            });
-
-            // 이벤트 리스너 추가
-            petSelector.addEventListener('change', function() {
-                currentPetId = this.value ? parseInt(this.value, 10) : null;
-
-                // 인벤토리 UI 업데이트 (아이템 사용 버튼 활성화/비활성화)
-                const useButtons = document.querySelectorAll('.use-button');
-                useButtons.forEach(button => {
-                    button.disabled = !currentPetId;
-                    if (!currentPetId) {
-                        button.style.opacity = 0.5;
-                        button.style.cursor = 'not-allowed';
-                    } else {
-                        button.style.opacity = 1;
-                        button.style.cursor = 'pointer';
-                    }
-                });
-            });
         }
 
         // 아이템 표시
@@ -592,59 +447,6 @@
             });
         }
 
-        // 인벤토리 표시
-        function displayInventory() {
-            if (!isLoggedIn) {
-                inventoryList.innerHTML = '<div class="empty-message">인벤토리를 보려면 로그인하세요.</div>';
-                return;
-            }
-
-            // 수량이 0인 아이템 필터링
-            const availableItems = userItems.filter(userItem => userItem.quantity > 0);
-
-            if (availableItems.length === 0) {
-                inventoryList.innerHTML = '<div class="empty-message">인벤토리가 비어 있습니다.</div>';
-                return;
-            }
-
-            const inventoryHtml = availableItems.map(userItem => {
-                const item = userItem.item;
-
-                return `
-        <div class="inventory-item">
-          <div class="item-icon">
-            ${itemTypeIcons[item.itemType] || itemTypeIcons.default}
-          </div>
-          <div class="item-info">
-            <div class="item-name">${item.name}</div>
-            <div class="item-description">${item.description}</div>
-          </div>
-          <div class="item-quantity">
-            ${userItem.quantity}개
-          </div>
-          <button class="use-button" data-item-id="${item.id}" ${!currentPetId ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-            사용하기
-          </button>
-        </div>
-      `;
-            }).join('');
-
-            inventoryList.innerHTML = inventoryHtml;
-
-            // 사용 버튼에 이벤트 리스너 추가
-            document.querySelectorAll('.use-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    if (!currentUserId || !currentPetId) {
-                        showStatusMessage(inventoryStatusMessage, '펫을 선택해주세요.', 'error');
-                        return;
-                    }
-
-                    const itemId = parseInt(this.dataset.itemId, 10);
-                    useItem(currentUserId, currentPetId, itemId);
-                });
-            });
-        }
-
         // 아이템 구매
         async function purchaseItem(userId, itemId) {
             try {
@@ -656,50 +458,11 @@
                     throw new Error('아이템 구매에 실패했습니다.');
                 }
 
-                const purchasedItem = await response.json();
+                await response.json();
                 showStatusMessage(shopStatusMessage, '아이템을 구매했습니다!', 'success');
-
-                // 인벤토리 새로고침
-                await loadUserInventory(userId);
             } catch (error) {
                 console.error('Error purchasing item:', error);
                 showStatusMessage(shopStatusMessage, error.message, 'error');
-            }
-        }
-
-        // 아이템 사용
-        async function useItem(userId, petId, itemId) {
-            try {
-                const response = await fetch(`/api/items/use/${userId}/${petId}/${itemId}`, {
-                    method: 'POST'
-                });
-
-                if (!response.ok) {
-                    throw new Error('아이템 사용에 실패했습니다.');
-                }
-
-                const updatedPet = await response.json();
-                showStatusMessage(inventoryStatusMessage, '아이템을 사용했습니다!', 'success');
-
-                // 인벤토리 및 펫 목록 새로고침
-                await loadUserInventory(userId);
-                await loadUserPets(userId);
-            } catch (error) {
-                console.error('Error using item:', error);
-                showStatusMessage(inventoryStatusMessage, error.message, 'error');
-            }
-        }
-
-        // 펫 상태 요약
-        function getStateSummary(pet) {
-            if (pet.hp < 20) {
-                return '위험';
-            } else if (pet.fullness < 20 || pet.thirsty > 80 || pet.tired > 80 || pet.stress > 80) {
-                return '주의';
-            } else if (pet.happiness > 70) {
-                return '행복';
-            } else {
-                return '보통';
             }
         }
 

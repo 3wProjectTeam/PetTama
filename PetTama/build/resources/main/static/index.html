@@ -8,6 +8,37 @@
     <link rel="stylesheet" href="/css/style.css">
     <style>
         /* 기존 스타일... */
+
+        /* 인벤토리 버튼 스타일 */
+        .inventory-button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .inventory-button {
+            display: flex;
+            align-items: center;
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .inventory-button:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .inventory-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -52,6 +83,14 @@
                 <ul id="petList" class="pet-list">
                     <!-- 펫 목록이 여기에 동적으로 추가됩니다 -->
                 </ul>
+            </div>
+
+            <!-- 내 인벤토리 확인 버튼 -->
+            <div class="inventory-button-container">
+                <a href="/inventory" class="inventory-button">
+                    <span class="inventory-icon">🎒</span>
+                    내 인벤토리 확인하기
+                </a>
             </div>
         </div>
 
@@ -181,20 +220,6 @@
             </div>
         </div>
     </div>
-    <!-- 인벤토리 섹션 -->
-    <div class="inventory-section" style="margin-top: 2rem;">
-        <div class="section-header">
-            <h3>내 인벤토리</h3>
-            <button id="refreshInventoryButton" class="secondary-btn btn-sm">
-                <span class="refresh-icon">🔄</span> 새로고침
-            </button>
-        </div>
-
-        <div id="inventoryList" class="inventory-list">
-            <!-- 인벤토리 아이템들이 여기에 동적으로 로드됩니다 -->
-            <div class="loading">인벤토리를 불러오는 중...</div>
-        </div>
-
         <div class="inventory-footer">
             <a href="/shop" class="primary-btn">상점 방문하기</a>
         </div>
