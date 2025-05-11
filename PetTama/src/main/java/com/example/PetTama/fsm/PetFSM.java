@@ -2,6 +2,7 @@ package com.example.PetTama.fsm;
 
 import com.example.PetTama.entity.Pet;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -183,6 +184,9 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet feed(Pet pet) {
+        if (checkIfSleeping(pet)) {
+            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         // Update time-based stats first
         updatePetStatus(pet);
 
@@ -206,6 +210,9 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet play(Pet pet) {
+        if (checkIfSleeping(pet)) {
+            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         // Update time-based stats first
         updatePetStatus(pet);
         
@@ -236,6 +243,9 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet brush(Pet pet) {
+        if (checkIfSleeping(pet)) {
+            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         // Update time-based stats first
         updatePetStatus(pet);
         
@@ -259,36 +269,98 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet sleep(Pet pet) {
+        if (checkIfSleeping(pet)) {
+            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         // Update time-based stats first
         updatePetStatus(pet);
-        
+
+        // 이미 수면 중인지 확인
+        if (pet.isSleeping()) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime endTime = pet.getSleepEndTime();
+
+            // 수면 시간이 끝났는지 확인
+            if (now.isAfter(endTime)) {
+                // 수면 상태 해제
+                pet.setSleeping(false);
+                pet.setSleepStartTime(null);
+                pet.setSleepEndTime(null);
+                log.info("Pet {} woke up naturally", pet.getName());
+            } else {
+                // 아직 수면 중이면 상태 그대로 반환
+                log.info("Pet {} is still sleeping until {}", pet.getName(), endTime);
+                return pet;
+            }
+        }
+
+        // 새로운 수면 시작
         // Apply sleep effects
         int newTired = Math.max(0, pet.getTired() - 20);
         pet.setTired(newTired);
-        
+
         // Sleeping makes pet slightly hungrier and thirstier
         int newFullness = Math.max(0, pet.getFullness() - 5);
         pet.setFullness(newFullness);
-        
+
         int newThirsty = Math.min(MAX_VALUE, pet.getThirsty() + 5);
         pet.setThirsty(newThirsty);
-        
+
         // Sleep reduces stress
         int newStress = Math.max(0, pet.getStress() - 8);
         pet.setStress(newStress);
-        
+
+        // 수면 상태 설정 (8시간)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime sleepEnd = now.plusHours(8);
+
+        pet.setSleeping(true);
+        pet.setSleepStartTime(now);
+        pet.setSleepEndTime(sleepEnd);
+
+        log.info("Pet {} went to sleep until {}", pet.getName(), sleepEnd);
+
         // Update last interaction time
-        pet.setLastUpdated(LocalDateTime.now());
-        
+        pet.setLastUpdated(now);
+
         return pet;
     }
-    
+    /**
+     * 펫이 수면 중인지 확인하고, 수면 중이면 액션을 수행하지 않음
+     * @param pet 확인할 펫
+     * @return 수면 중이면 true, 아니면 false
+     */
+    public static boolean checkIfSleeping(Pet pet) {
+        if (!pet.isSleeping()) {
+            return false; // 수면 중이 아니라면 액션 수행 가능
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = pet.getSleepEndTime();
+
+        // 수면 시간이 끝났는지 확인
+        if (endTime != null && now.isAfter(endTime)) {
+            // 수면 상태 해제
+            pet.setSleeping(false);
+            pet.setSleepStartTime(null);
+            pet.setSleepEndTime(null);
+            log.info("Pet {} woke up during an action", pet.getName());
+            return false; // 수면 시간이 끝났으므로 액션 수행 가능
+        }
+
+        // 수면 중이면 액션 수행 불가
+        log.info("Pet {} is sleeping. Cannot perform action until {}", pet.getName(), endTime);
+        return true;
+    }
     /**
      * Performs the give water action and updates pet state
      * @param pet The pet to give water to
      * @return The updated pet
      */
     public static Pet giveWater(Pet pet) {
+        if (checkIfSleeping(pet)) {
+            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         // Update time-based stats first
         updatePetStatus(pet);
         
@@ -308,6 +380,9 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet giveSnack(Pet pet) {
+        if (checkIfSleeping(pet)) {
+            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         // Update time-based stats first
         updatePetStatus(pet);
         
@@ -335,6 +410,9 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet walk(Pet pet) {
+        if (checkIfSleeping(pet)) {
+            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         // Update time-based stats first
         updatePetStatus(pet);
         

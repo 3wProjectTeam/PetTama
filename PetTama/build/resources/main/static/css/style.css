@@ -867,4 +867,77 @@ footer {
         background-color: var(--background-gray);
         border-radius: var(--radius-md);
     }
+    .pet-type-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .pet-type-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .pet-type-option.selected {
+        border-color: var(--primary-color);
+        background-color: var(--primary-light);
+    }
+
+    .pet-type-option:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .pet-type-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .pet-type-label {
+        font-weight: 600;
+    }
+    /* style.css 파일에 추가할 수면 관련 스타일 */
+
+    /* 수면 중 상태 배지 스타일 */
+    .pet-state-badge.sleeping {
+        background-color: #9575CD;
+        color: white;
+        animation: pulse 1.5s infinite;
+    }
+
+    /* 수면 중 펄스 애니메이션 */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+
+    /* 쿨다운 중 버튼 스타일 */
+    .action-button.cooldown {
+        opacity: 0.5;
+        cursor: not-allowed;
+        position: relative;
+    }
+
+    /* 쿨다운 텍스트 스타일 */
+    .cooldown-text {
+        font-size: 0.8rem;
+        color: var(--primary-dark);
+        font-weight: normal;
+        margin-top: 0.25rem;
+    }
+
+    /* 수면 버튼의 쿨다운 시 레이블 조정 */
+    .action-button.cooldown .action-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1.2;
+    }
 }

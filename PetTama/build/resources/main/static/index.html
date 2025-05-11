@@ -7,8 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        /* 기존 스타일... */
-
         /* 인벤토리 버튼 스타일 */
         .inventory-button-container {
             display: flex;
@@ -60,8 +58,8 @@
                 </div>
 
                 <div class="input-group">
-                    <label>펫 종류 선택:</label>
-                    <div class="pet-type-selector">
+                    <label for="petTypeSelector">펫 종류 선택:</label>
+                    <div id="petTypeSelector" class="pet-type-selector">
                         <div class="pet-type-option selected" data-pet-type="DOG">
                             <div class="pet-type-icon">🐶</div>
                             <div class="pet-type-label">강아지</div>
