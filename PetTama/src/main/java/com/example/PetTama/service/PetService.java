@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -45,8 +46,51 @@ public class PetService {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
         Pet updatedPet = PetFSM.updatePetStatus(pet);
+
+        // 수면 상태 확인
+        checkSleepState(updatedPet);
+
         petRepository.save(updatedPet);
         return createEnhancedDto(updatedPet);
+    }
+
+    /**
+     * 펫의 수면 상태를 확인하고 필요시 업데이트
+     * @param pet 확인할 펫
+     */
+    private void checkSleepState(Pet pet) {
+        try {
+            if (pet == null) {
+                log.warn("checkSleepState: pet is null");
+                return;
+            }
+            if (pet.isSleeping()) {
+                // NullPointerException 방지
+                if (pet.getSleepEndTime() == null) {
+                    log.warn("수면 종료 시간이 null입니다: petId={}", pet.getId());
+                    pet.setSleeping(false); // boolean 타입이므로 false로 설정
+                    return;
+                }
+
+                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                java.time.LocalDateTime endTime = pet.getSleepEndTime();
+
+                // 수면 시간이 끝났는지 확인
+                if (now.isAfter(endTime)) {
+                    // 수면 상태 해제
+                    pet.setSleeping(false); // boolean 타입이므로 false로 설정
+                    pet.setSleepStartTime(null);
+                    pet.setSleepEndTime(null);
+                    log.info("Pet {} woke up on status check", pet.getName());
+                }
+            }
+        } catch (Exception e) {
+            log.error("수면 상태 확인 중 오류: petId={}", pet.getId(), e);
+            // 수면 상태 확인 실패 시 기본값으로 설정
+            pet.setSleeping(false); // boolean 타입이므로 false로 설정
+            pet.setSleepStartTime(null);
+            pet.setSleepEndTime(null);
+        }
     }
 
     @Transactional
@@ -66,6 +110,7 @@ public class PetService {
         pet.setThirsty(random.nextInt(20, 51));   // 20 ~ 50
         pet.setStress(random.nextInt(20, 51));    // 20 ~ 50
         pet.setLastUpdated(LocalDateTime.now());
+        pet.setSleeping(false); // 초기 수면 상태 설정
         pet = petRepository.save(pet);
         return createEnhancedDto(pet);
     }
@@ -79,6 +124,15 @@ public class PetService {
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
+
+        // 수면 상태 확인
+        if (pet.isSleeping()) {
+            LocalDateTime endTime = pet.getSleepEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
+        }
+
         return itemService.useItem(userId, petId, itemId);
     }
 
@@ -87,6 +141,14 @@ public class PetService {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
+        }
+
+        // 수면 상태 확인
+        if (pet.isSleeping()) {
+            LocalDateTime endTime = pet.getSleepEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
 
         // Use the FSM to handle playing
@@ -102,6 +164,15 @@ public class PetService {
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
+
+        // 수면 상태 확인
+        if (pet.isSleeping()) {
+            LocalDateTime endTime = pet.getSleepEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
+        }
+
         Pet updatedPet = PetFSM.brush(pet);
         petRepository.save(updatedPet);
 
@@ -129,6 +200,14 @@ public class PetService {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
 
+        // 수면 상태 확인
+        if (pet.isSleeping()) {
+            LocalDateTime endTime = pet.getSleepEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
+        }
+
         // Use the FSM to handle giving water
         Pet updatedPet = PetFSM.giveWater(pet);
         petRepository.save(updatedPet);
@@ -143,6 +222,14 @@ public class PetService {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
 
+        // 수면 상태 확인
+        if (pet.isSleeping()) {
+            LocalDateTime endTime = pet.getSleepEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
+        }
+
         // Use the FSM to handle giving snack
         Pet updatedPet = PetFSM.giveSnack(pet);
         petRepository.save(updatedPet);
@@ -155,6 +242,14 @@ public class PetService {
         Pet pet = petRepository.findByIdAndUserId(petId, userId);
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
+        }
+
+        // 수면 상태 확인
+        if (pet.isSleeping()) {
+            LocalDateTime endTime = pet.getSleepEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
 
         // Use the FSM to handle walking

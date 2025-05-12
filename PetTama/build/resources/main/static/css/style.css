@@ -716,4 +716,228 @@ footer {
     #refreshInventoryButton:hover .refresh-icon {
         transform: rotate(180deg);
     }
+    /* 새로운 인벤토리 아이템 스타일 */
+    .inventory-item-simple {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        background-color: white;
+        border-radius: var(--radius-md);
+        margin-bottom: 0.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .item-icon-container {
+        width: 40px;
+        margin-right: 1rem;
+    }
+
+    .item-icon {
+        font-size: 1.5rem;
+    }
+
+    .item-details {
+        flex-grow: 1;
+    }
+
+    .item-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-description {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .item-quantity {
+        background-color: #e9ecff;
+        color: var(--primary-color);
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-weight: 600;
+        margin-right: 1rem;
+    }
+
+    .use-item-button {
+        background-color: #c2d1ff;
+        color: var(--primary-color);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .use-item-button:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .inventory-list {
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    .inventory-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--background-gray);
+        transition: background-color 0.2s;
+    }
+
+    .inventory-item:hover {
+        background-color: var(--background-light);
+    }
+
+    .inventory-item:last-child {
+        border-bottom: none;
+    }
+
+    .item-icon {
+        font-size: 2rem;
+        margin-right: 1rem;
+        width: 40px;
+        text-align: center;
+    }
+
+    .item-info {
+        flex-grow: 1;
+    }
+
+    .item-name {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        color: var(--text-primary);
+    }
+
+    .item-description {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .item-effects {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .effect {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 1rem;
+        font-weight: 500;
+    }
+
+    .item-quantity {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        margin-right: 1rem;
+    }
+
+    .use-button {
+        padding: 0.5rem 1rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .use-button:hover {
+        background-color: var(--primary-dark);
+    }
+
+    .empty-message {
+        padding: 2rem;
+        text-align: center;
+        color: var(--text-light);
+        background-color: var(--background-gray);
+        border-radius: var(--radius-md);
+    }
+    .pet-type-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .pet-type-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .pet-type-option.selected {
+        border-color: var(--primary-color);
+        background-color: var(--primary-light);
+    }
+
+    .pet-type-option:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .pet-type-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .pet-type-label {
+        font-weight: 600;
+    }
+    /* style.css 파일에 추가할 수면 관련 스타일 */
+
+    /* 수면 중 상태 배지 스타일 */
+    .pet-state-badge.sleeping {
+        background-color: #9575CD;
+        color: white;
+        animation: pulse 1.5s infinite;
+    }
+
+    /* 수면 중 펄스 애니메이션 */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+
+    /* 쿨다운 중 버튼 스타일 */
+    .action-button.cooldown {
+        opacity: 0.5;
+        cursor: not-allowed;
+        position: relative;
+    }
+
+    /* 쿨다운 텍스트 스타일 */
+    .cooldown-text {
+        font-size: 0.8rem;
+        color: var(--primary-dark);
+        font-weight: normal;
+        margin-top: 0.25rem;
+    }
+
+    /* 수면 버튼의 쿨다운 시 레이블 조정 */
+    .action-button.cooldown .action-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1.2;
+    }
 }

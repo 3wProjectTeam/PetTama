@@ -15,8 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const petDetailName = document.getElementById('petDetailName');
     const petTypeOptions = document.querySelectorAll('.pet-type-option');
     const userNicknameDisplay = document.getElementById('userNicknameDisplay');
-    const inventoryList = document.getElementById('inventoryList');
-    const refreshInventoryButton = document.getElementById('refreshInventoryButton');
 
     // 스탯 관련 요소
     const statBars = {
@@ -53,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let petsData = [];
     let selectedPetType = "DOG"; // 기본 선택 펫 타입
     let feedCooldownTimer = null; // 먹이 쿨타임 타이머
-    let userInventory = [];
+    let sleepTimerInterval = null; // 수면 타이머
 
     // 펫 이모지 매핑
     const petEmojis = {
@@ -126,24 +124,31 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {Object} options - fetch 옵션
      * @returns {Promise<any>} - API 응답
      */
+// API 요청 처리 함수 수정 - 더 자세한 오류 처리
     async function fetchAPI(url, options) {
         try {
+            console.log(`API 요청: ${url}`, options);
+
             // 리다이렉트 처리 옵션 추가
             const fetchOptions = {
                 ...options,
-                redirect: 'follow' // 서버 리다이렉트를 따르도록 설정
+                redirect: 'follow', // 서버 리다이렉트를 따르도록 설정
+                credentials: 'include' // 인증 정보(쿠키) 포함
             };
 
             const response = await fetch(url, fetchOptions);
+            console.log(`응답 상태: ${response.status} ${response.statusText}`);
 
             // 서버 리다이렉트 확인
             if (response.redirected) {
+                console.log(`리다이렉트 감지: ${response.url}`);
                 window.location.href = response.url;
                 return null;
             }
 
             // 인증 오류 시 로그인 페이지로 리디렉션
             if (response.status === 401 || response.status === 403) {
+                console.log('인증 오류 감지');
                 // 현재 URL을 redirect 파라미터로 전달
                 const currentPath = encodeURIComponent(window.location.pathname);
                 window.location.href = `/auth/login?redirect=${currentPath}`;
@@ -151,29 +156,59 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || 'API 요청 실패: ' + response.status);
+                // 응답 본문 가져오기 시도
+                let errorText;
+                try {
+                    errorText = await response.text();
+                } catch (e) {
+                    errorText = `응답 본문을 읽을 수 없음: ${e.message}`;
+                }
+
+                console.error(`API 오류: ${response.status} ${response.statusText}`, errorText);
+                throw new Error(errorText || `API 요청 실패: ${response.status} ${response.statusText}`);
             }
 
-            return await response.json();
+            // JSON 파싱 시도
+            try {
+                const data = await response.json();
+                console.log('API 응답 데이터:', data);
+                return data;
+            } catch (e) {
+                console.error('JSON 파싱 오류:', e);
+                throw new Error(`응답 데이터 처리 오류: ${e.message}`);
+            }
         } catch (error) {
             console.error('API 요청 오류:', error);
             throw error;
         }
     }
 
-    // === 메인 기능 함수 ===
-
-    /**
-     * 현재 로그인한 사용자 정보 가져오기
-     */
+// 현재 로그인한 사용자 정보 가져오기 함수 수정
     async function fetchCurrentUser() {
         try {
-            const user = await fetchAPI('/api/auth/user');
+            // 로그인 정보 가져오기 전에 상태 표시
+            if (petListUl) {
+                petListUl.innerHTML = '<li class="loading">사용자 정보를 불러오는 중...</li>';
+            }
+
+            const response = await fetch('/api/auth/user');
+
+            // 응답 상태 확인
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    petListUl.innerHTML = '<li class="error">로그인이 필요합니다.</li>';
+                    return null;
+                }
+                const errorText = await response.text();
+                throw new Error(errorText || `서버 오류: ${response.status}`);
+            }
+
+            const user = await response.json();
 
             // 리다이렉트된 경우 (fetchAPI 내부에서 처리)
             if (!user) return null;
 
+            console.log('사용자 정보 로드 성공:', user);
             currentUserId = user.id;
 
             // 닉네임 표시
@@ -191,17 +226,19 @@ document.addEventListener('DOMContentLoaded', function() {
             displayWelcomeMessage(user.nickname);
 
             // 펫 목록 자동 로드
-            fetchPets(user.id);
-            loadUserInventory(user.id);if (refreshInventoryButton) {
-                refreshInventoryButton.addEventListener('click', function() {
-                    if (currentUserId) {
-                        loadUserInventory(currentUserId);
-                    }
-                });
+            if (user.id) {
+                fetchPets(user.id);
+            } else {
+                console.error('사용자 ID가 없습니다.');
+                petListUl.innerHTML = '<li class="error">사용자 정보가 올바르지 않습니다.</li>';
             }
+
             return user;
         } catch (error) {
             console.error('사용자 정보 가져오기 실패:', error);
+            if (petListUl) {
+                petListUl.innerHTML = '<li class="error">사용자 정보를 불러오는데 실패했습니다.</li>';
+            }
             return null;
         }
     }
@@ -210,9 +247,26 @@ document.addEventListener('DOMContentLoaded', function() {
      * 사용자의 모든 펫 가져오기
      * @param {number} userId - 사용자 ID
      */
+// 사용자의 모든 펫 가져오기 함수 수정
     async function fetchPets(userId) {
         try {
-            const pets = await fetchAPI(`${API_BASE_URL}/${userId}`);
+            // API 호출 전에 상태 메시지 표시
+            petListUl.innerHTML = '<li class="loading">펫 목록을 불러오는 중...</li>';
+
+            // API 호출
+            const response = await fetch(`${API_BASE_URL}/${userId}`);
+
+            // 응답 상태 확인
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `서버 오류: ${response.status}`);
+            }
+
+            // 응답 데이터 파싱
+            const pets = await response.json();
+
+            // 로그 추가
+            console.log('펫 목록 로드 성공:', pets);
 
             // petType이 없는 경우 기본값 설정
             petsData = pets.map(function(pet, index) {
@@ -225,8 +279,16 @@ document.addEventListener('DOMContentLoaded', function() {
             displayPetList(petsData);
         } catch (error) {
             console.error('펫 목록 로드 실패:', error);
-            showStatusMessage(creationStatusP, "펫 목록을 불러오는데 실패했습니다", 'error');
-            petListUl.innerHTML = '<li>펫 목록을 불러오는데 실패했습니다.</li>';
+            showStatusMessage(creationStatusP, "펫 목록을 불러오는데 실패했습니다: " + error.message, 'error');
+            petListUl.innerHTML = '<li class="error">펫 목록을 불러오는데 실패했습니다. 다시 시도해주세요.</li>';
+
+            // 오류 세부정보 로깅
+            if (error.message) {
+                console.log('오류 메시지:', error.message);
+            }
+            if (error.stack) {
+                console.log('오류 스택:', error.stack);
+            }
         }
     }
 
@@ -330,6 +392,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 먹이 버튼 쿨타임 상태 업데이트
         updateFeedButtonCooldown(pet);
+
+        // 수면 상태 확인 및 처리
+        if (pet.sleeping) {
+            // 수면 종료 시간 가져오기
+            const sleepEndTime = new Date(pet.sleepEndTime);
+            const now = new Date();
+
+            // 수면 상태가 종료되었는지 확인
+            if (now >= sleepEndTime) {
+                // 수면 종료됨 - 버튼 활성화
+                toggleActionButtons(false);
+            } else {
+                // 아직 수면 중 - 버튼 비활성화
+                toggleActionButtons(true, sleepEndTime);
+
+                // 수면 중 상태 표시
+                petStateBadge.textContent = '수면 중';
+                petStateBadge.className = 'pet-state-badge';
+                petStateBadge.classList.add('sleeping');
+
+                // 수면 아이콘으로 변경
+                petImage.textContent = '💤';
+
+                // 추천 메시지 변경
+                petRecommendation.textContent = '펫이 자고 있습니다. 깨우지 말고 기다려주세요.';
+
+                // 수면 타이머 시작
+                startSleepTimer(sleepEndTime);
+            }
+        } else {
+            // 수면 중이 아님 - 버튼 활성화
+            toggleActionButtons(false);
+        }
     }
 
     /**
@@ -376,6 +471,11 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {Object} pet - 펫 데이터
      */
     function updatePetState(pet) {
+        // 수면 중이면 별도 처리
+        if (pet.sleeping) {
+            return;
+        }
+
         // FSM에서 상태 정보가 오는 경우
         const state = pet.state || determineState(pet);
         const recommendation = pet.recommendation || getDefaultRecommendation(state);
@@ -491,6 +591,160 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
+     * 액션 버튼 활성화/비활성화 토글
+     * @param {boolean} disabled - 버튼 비활성화 여부
+     * @param {Date} [endTime] - 수면 종료 시간 (선택적)
+     */
+    function toggleActionButtons(disabled, endTime) {
+        const actionButtons = document.querySelectorAll('.action-button');
+
+        actionButtons.forEach(button => {
+            button.disabled = disabled;
+
+            if (disabled) {
+                button.classList.add('cooldown');
+
+                // 수면 버튼인 경우 특별 처리
+                if (button.dataset.action === 'sleep') {
+                    const actionLabel = button.querySelector('.action-label');
+                    if (actionLabel) {
+                        // 남은 시간 계산 및 표시
+                        if (endTime) {
+                            const now = new Date();
+                            const diffMs = endTime - now;
+                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                            actionLabel.innerHTML = `자는 중...<br><span class="cooldown-text">${diffHours}시간 ${diffMinutes}분 후 기상</span>`;
+                        } else {
+                            actionLabel.innerHTML = '자는 중...';
+                        }
+                    }
+                }
+            } else {
+                button.classList.remove('cooldown');
+
+                // 수면 버튼 원래대로 복원
+                if (button.dataset.action === 'sleep') {
+                    const actionLabel = button.querySelector('.action-label');
+                    if (actionLabel) {
+                        actionLabel.textContent = '재우기';
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * 수면 타이머 시작
+     * @param {Date} sleepEndTime - 수면 종료 시간
+     */
+    function startSleepTimer(sleepEndTime) {
+        // 기존 타이머가 있으면 정리
+        if (sleepTimerInterval) {
+            clearInterval(sleepTimerInterval);
+        }
+
+        // 1분마다 업데이트 (60 * 1000 = 1분)
+        sleepTimerInterval = setInterval(() => {
+            updateSleepTimerDisplay(sleepEndTime);
+        }, 60000);
+
+        // 초기 업데이트
+        updateSleepTimerDisplay(sleepEndTime);
+    }
+
+    /**
+     * 수면 타이머 표시 업데이트
+     * @param {Date} sleepEndTime - 수면 종료 시간
+     */
+    function updateSleepTimerDisplay(sleepEndTime) {
+        const now = new Date();
+        const endTime = new Date(sleepEndTime);
+
+        // 수면이 종료되었는지 확인
+        if (now >= endTime) {
+            // 타이머 중지
+            clearInterval(sleepTimerInterval);
+            sleepTimerInterval = null;
+
+            // 최신 정보 가져오기
+            if (currentUserId && currentPetId) {
+                fetchPetDetails(currentUserId, currentPetId);
+            }
+
+            return;
+        }
+
+        // 남은 시간 계산
+        const diffMs = endTime - now;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        // 수면 버튼 텍스트 업데이트
+        const sleepButton = document.querySelector('.action-button[data-action="sleep"]');
+        if (sleepButton) {
+            const actionLabel = sleepButton.querySelector('.action-label');
+            if (actionLabel) {
+                actionLabel.innerHTML = `자는 중...<br><span class="cooldown-text">${diffHours}시간 ${diffMinutes}분 후 기상</span>`;
+            }
+        }
+
+        // 추천 메시지 업데이트
+        const petRecommendation = document.getElementById('petRecommendation');
+        if (petRecommendation) {
+            petRecommendation.textContent = `펫이 자고 있습니다. ${diffHours}시간 ${diffMinutes}분 후에 깨어납니다.`;
+        }
+    }
+
+    /**
+     * 수면 상태 관련 에러 처리
+     * @param {string} errorMessage - 에러 메시지
+     * @returns {boolean} - 처리 여부
+     */
+    function handleSleepError(errorMessage) {
+        // "펫이 자고 있습니다" 메시지를 포함하는 오류 확인
+        if (errorMessage.includes("펫이 자고 있습니다")) {
+            // 시간 정보 추출 (형식: "펫이 자고 있습니다. YYYY-MM-DD HH:MM:SS까지 깨울 수 없습니다.")
+            const dateTimeMatch = errorMessage.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+
+            if (dateTimeMatch && dateTimeMatch[1]) {
+                const sleepEndTimeStr = dateTimeMatch[1];
+                const sleepEndTime = new Date(sleepEndTimeStr.replace(' ', 'T') + '.000+09:00'); // UTC+9 (한국 시간대) 처리
+
+                // 현재 시간과 종료 시간의 차이 계산
+                const now = new Date();
+                const diffMs = sleepEndTime - now;
+
+                if (diffMs > 0) {
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                    // 버튼 비활성화 및 상태 업데이트
+                    toggleActionButtons(true, sleepEndTime);
+
+                    // 수면 상태 시각적 표시
+                    petStateBadge.textContent = '수면 중';
+                    petStateBadge.className = 'pet-state-badge sleeping';
+
+                    // 수면 아이콘으로 변경
+                    petImage.textContent = '💤';
+
+                    // 수면 상태 메시지 표시
+                    petRecommendation.textContent = `펫이 자고 있습니다. ${diffHours}시간 ${diffMinutes}분 후에 깨어납니다.`;
+
+                    // 수면 타이머 시작
+                    startSleepTimer(sleepEndTime);
+
+                    return true; // 처리 완료
+                }
+            }
+        }
+
+        return false; // 처리되지 않음
+    }
+
+    /**
      * 펫 상태 결정 (백엔드 상태 정보가 없는 경우 대비)
      * @param {Object} pet - 펫 데이터
      * @returns {string} - 결정된 상태
@@ -545,6 +799,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function createPet(name, petType) {
         try {
             showStatusMessage(creationStatusP, '펫 생성 중...', 'info');
+            console.log(`펫 생성 요청: 이름=${name}, 타입=${petType}`); // 디버깅용
 
             const newPet = await fetchAPI(
                 `${API_BASE_URL}/${currentUserId}?name=${encodeURIComponent(name)}&petType=${encodeURIComponent(petType)}`,
@@ -595,7 +850,11 @@ document.addEventListener('DOMContentLoaded', function() {
             displayPetDetails(updatedPet);
 
             // 성공 메시지
-            showStatusMessage(actionStatusP, `"${getActionName(action)}" 완료!`, 'success');
+            if (action === 'sleep') {
+                showStatusMessage(actionStatusP, `"${getActionName(action)}" 완료! 펫이 8시간 동안 잠을 잡니다.`, 'success');
+            } else {
+                showStatusMessage(actionStatusP, `"${getActionName(action)}" 완료!`, 'success');
+            }
 
             // 로컬 펫 데이터 업데이트
             const index = petsData.findIndex(p => p.id === petId);
@@ -604,7 +863,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error(`${action} 액션 실패:`, error);
-            showStatusMessage(actionStatusP, `${getActionName(action)} 실패: ${error.message}`, 'error');
+
+            // 수면 상태 에러 특별 처리
+            if (!handleSleepError(error.message)) {
+                showStatusMessage(actionStatusP, `${getActionName(action)} 실패: ${error.message}`, 'error');
+            }
         }
     }
 
@@ -708,7 +971,10 @@ document.addEventListener('DOMContentLoaded', function() {
             checkFeedAvailability(currentUserId);
         } catch (error) {
             console.error('먹이 주기 실패:', error);
-            showStatusMessage(actionStatusP, `먹이 주기 실패: ${error.message}`, 'error');
+            // 수면 상태 에러 특별 처리
+            if (!handleSleepError(error.message)) {
+                showStatusMessage(actionStatusP, `먹이 주기 실패: ${error.message}`, 'error');
+            }
         }
     }
 
@@ -762,18 +1028,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // === 이벤트 리스너 설정 ===
 
     // 펫 타입 선택 이벤트
-    petTypeOptions.forEach(function(option) {
-        option.addEventListener('click', function() {
-            // 기존 선택 해제
-            petTypeOptions.forEach(opt => opt.classList.remove('selected'));
+    if (petTypeOptions.length > 0) {
+        petTypeOptions.forEach(function(option) {
+            option.addEventListener('click', function() {
+                // 기존 선택 해제
+                petTypeOptions.forEach(opt => opt.classList.remove('selected'));
 
-            // 새로운 선택 적용
-            this.classList.add('selected');
+                // 새로운 선택 적용
+                this.classList.add('selected');
 
-            // 선택된 펫 타입 저장
-            selectedPetType = this.dataset.petType;
+                // 선택된 펫 타입 저장
+                selectedPetType = this.dataset.petType;
+                console.log('펫 타입 선택됨:', selectedPetType); // 디버깅용
+            });
         });
-    });
+    }
 
     // 펫 생성 버튼
     if (createPetButton) {
@@ -790,7 +1059,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            createPet(petName, selectedPetType);
+            // 현재 선택된 펫 타입 가져오기
+            const selectedElement = document.querySelector('.pet-type-option.selected');
+            const petType = selectedElement ? selectedElement.dataset.petType : "DOG";
+
+            console.log(`펫 생성 시도: 이름=${petName}, 타입=${petType}`); // 디버깅용
+            createPet(petName, petType);
         });
     }
 
@@ -823,16 +1097,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 인벤토리 새로고침 버튼 이벤트 리스너 (여기에 추가)
-    if (refreshInventoryButton) {
-        refreshInventoryButton.addEventListener('click', function() {
-            if (currentUserId) {
-                loadUserInventory(currentUserId);
-                showStatusMessage(actionStatusP, "인벤토리를 새로고침했습니다.", 'success');
-            }
-        });
-    }
-
     // 모달 외부 클릭 시 닫기
     if (feedModal) {
         feedModal.addEventListener('click', function(e) {
@@ -849,6 +1113,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeunload', function() {
         if (feedCooldownTimer) {
             clearInterval(feedCooldownTimer);
+        }
+
+        if (sleepTimerInterval) {
+            clearInterval(sleepTimerInterval);
         }
     });
 });
@@ -898,30 +1166,6 @@ function displayWelcomeMessage(nickname) {
 }
 
 /**
- * 상점 페이지의 먹이 아이템 버튼 업데이트 (상점 페이지에 있을 경우)
- * @param {string} timeText - 표시할 시간 텍스트
- * @param {boolean} isDisabled - 버튼 비활성화 여부
- */
-function updateShopFeedButtons(timeText, isDisabled) {
-    // 상점 페이지의 먹이 아이템 사용 버튼을 찾음
-    const feedItemButtons = document.querySelectorAll('.use-button[data-item-type="FOOD"]');
-
-    if (feedItemButtons.length > 0) {
-        feedItemButtons.forEach(button => {
-            button.disabled = isDisabled;
-            button.style.opacity = isDisabled ? 0.5 : 1;
-            button.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
-
-            if (isDisabled) {
-                button.title = `먹이는 ${timeText} 사용 가능합니다`;
-            } else {
-                button.title = '';
-            }
-        });
-    }
-}
-
-/**
  * 타이머 시간 형식화
  * @param {number} milliseconds - 밀리초
  * @returns {string} - 형식화된 시간 문자열
@@ -937,229 +1181,5 @@ function formatTimeRemaining(milliseconds) {
         return `${minutes}분 ${seconds}초 후`;
     } else {
         return `${seconds}초 후`;
-    }
-}
-// 아이템 사용
-async function useItem(userId, petId, itemId) {
-    try {
-        // API 요청 및 처리 로직...
-
-        // 성공 시 로컬 userItems 배열 업데이트
-        const usedItemIndex = userItems.findIndex(item => item.item.id === itemId);
-        if (usedItemIndex !== -1) {
-            userItems[usedItemIndex].quantity--;
-
-            // 수량이 0이 되면 목록 업데이트
-            if (userItems[usedItemIndex].quantity <= 0) {
-                // 옵션 1: 목록에서 제거
-                // userItems = userItems.filter(item => item.item.id !== itemId);
-
-                // 옵션 2: 수량이 0인 상태 유지하되 화면에서만 숨김
-                // (이 경우 displayInventory에서 필터링 처리)
-            }
-
-            // 인벤토리 디스플레이 업데이트
-            displayInventory();
-        }
-
-        // 나머지 처리 코드...
-    } catch (error) {
-        console.error('Error using item:', error);
-        showStatusMessage(inventoryStatusMessage, error.message, 'error');
-    }
-}
-/**
- * 사용자의 인벤토리 불러오기
- * @param {number} userId - 사용자 ID
- */
-async function loadUserInventory(userId) {
-    try {
-        if (!userId) return;
-
-        inventoryList.innerHTML = '<div class="loading">인벤토리를 불러오는 중...</div>';
-
-        // 사용자 아이템 목록 불러오기
-        const userItems = await fetchAPI(`/api/items/user/${userId}`);
-
-        // 수량이 0보다 큰 아이템만 필터링
-        userInventory = userItems.filter(item => item.quantity > 0);
-
-        displayInventory();
-    } catch (error) {
-        console.error('인벤토리 로드 실패:', error);
-        inventoryList.innerHTML = `
-            <div class="error-message">인벤토리를 불러오는데 실패했습니다: ${error.message}</div>
-        `;
-    }
-}
-
-/**
- * 인벤토리 표시
- */
-function displayInventory() {
-    if (!currentUserId) {
-        inventoryList.innerHTML = '<div class="empty-message">인벤토리를 보려면 로그인하세요.</div>';
-        return;
-    }
-
-    if (userInventory.length === 0) {
-        inventoryList.innerHTML = `
-            <div class="empty-message">
-                <p>인벤토리가 비어 있습니다.</p>
-                <a href="/shop" class="primary-btn">상점 방문하기</a>
-            </div>
-        `;
-        return;
-    }
-
-    // 아이템 타입별 그룹화
-    const itemsByType = {};
-
-    userInventory.forEach(userItem => {
-        const item = userItem.item;
-        const type = item.itemType || 'OTHER';
-
-        if (!itemsByType[type]) {
-            itemsByType[type] = [];
-        }
-
-        itemsByType[type].push(userItem);
-    });
-
-    // 타입별로 분류하여 HTML 생성
-    let inventoryHtml = '';
-
-    // 타입 이름 매핑
-    const typeNames = {
-        'FOOD': '🍗 사료/음식',
-        'DRINK': '💧 물/음료',
-        'TOY': '🎮 장난감',
-        'GROOMING': '🧹 그루밍',
-        'MEDICINE': '💊 약/건강',
-        'ACCESSORY': '🧣 액세서리',
-        'OTHER': '📦 기타'
-    };
-
-    // 타입 순서 지정 (선호하는 순서대로)
-    const typeOrder = ['FOOD', 'DRINK', 'TOY', 'GROOMING', 'MEDICINE', 'ACCESSORY', 'OTHER'];
-
-    // 타입 순서대로 렌더링
-    typeOrder.forEach(type => {
-        if (itemsByType[type] && itemsByType[type].length > 0) {
-            inventoryHtml += `
-                <div class="inventory-type">
-                    <div class="inventory-type-header">${typeNames[type] || type}</div>
-                    <div class="inventory-type-items">
-            `;
-
-            // 해당 타입의 아이템들 렌더링
-            itemsByType[type].forEach(userItem => {
-                const item = userItem.item;
-
-                inventoryHtml += `
-                    <div class="inventory-item">
-                        <div class="inventory-item-icon">${getItemEmoji(item.itemType)}</div>
-                        <div class="inventory-item-info">
-                            <div class="inventory-item-name">${item.name}</div>
-                            <div class="inventory-item-effects">
-                                ${getItemEffects(item)}
-                            </div>
-                        </div>
-                        <div class="inventory-item-quantity">${userItem.quantity}개</div>
-                        ${currentPetId ? `
-                            <button class="inventory-use-button" data-item-id="${item.id}">
-                                사용하기
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-            });
-
-            inventoryHtml += `
-                    </div>
-                </div>
-            `;
-        }
-    });
-
-    inventoryList.innerHTML = inventoryHtml;
-
-    // 아이템 사용 버튼에 이벤트 리스너 추가
-    if (currentPetId) {
-        document.querySelectorAll('.inventory-use-button').forEach(button => {
-            button.addEventListener('click', function() {
-                const itemId = parseInt(this.dataset.itemId, 10);
-                useInventoryItem(currentPetId, itemId);
-            });
-        });
-    }
-}
-
-/**
- * 아이템 이모지 가져오기
- * @param {string} itemType - 아이템 타입
- * @returns {string} - 이모지
- */
-function getItemEmoji(itemType) {
-    const emojis = {
-        'FOOD': '🍗',
-        'DRINK': '💧',
-        'TOY': '🎮',
-        'GROOMING': '🧹',
-        'MEDICINE': '💊',
-        'ACCESSORY': '🧣',
-        'default': '📦'
-    };
-
-    return emojis[itemType] || emojis.default;
-}
-
-/**
- * 아이템 효과 문자열 생성
- * @param {Object} item - 아이템 객체
- * @returns {string} - 효과 HTML
- */
-function getItemEffects(item) {
-    const effects = [];
-
-    if (item.fullnessEffect > 0) effects.push(`포만감 +${item.fullnessEffect}`);
-    if (item.happinessEffect > 0) effects.push(`행복도 +${item.happinessEffect}`);
-    if (item.hydrationEffect > 0) effects.push(`수분 +${item.hydrationEffect}`);
-    if (item.energyEffect > 0) effects.push(`활력 +${item.energyEffect}`);
-    if (item.stressReduction > 0) effects.push(`스트레스 -${item.stressReduction}`);
-
-    return effects.map(effect => `<span class="effect">${effect}</span>`).join('');
-}
-
-/**
- * 인벤토리에서 아이템 사용
- * @param {number} petId - 펫 ID
- * @param {number} itemId - 아이템 ID
- */
-async function useInventoryItem(petId, itemId) {
-    try {
-        // 아이템 사용 API 호출
-        const updatedPet = await fetchAPI(
-            `/api/items/use/${currentUserId}/${petId}/${itemId}`,
-            { method: 'POST' }
-        );
-
-        // 펫 정보 업데이트
-        displayPetDetails(updatedPet);
-
-        // 성공 메시지
-        showStatusMessage(actionStatusP, "아이템 사용 완료!", 'success');
-
-        // 로컬 펫 데이터 업데이트
-        const index = petsData.findIndex(p => p.id === petId);
-        if (index !== -1) {
-            petsData[index] = {...petsData[index], ...updatedPet};
-        }
-
-        // 인벤토리 다시 로드
-        loadUserInventory(currentUserId);
-    } catch (error) {
-        console.error('아이템 사용 실패:', error);
-        showStatusMessage(actionStatusP, `아이템 사용 실패: ${error.message}`, 'error');
     }
 }

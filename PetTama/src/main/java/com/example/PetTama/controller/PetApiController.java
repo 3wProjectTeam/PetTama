@@ -4,6 +4,7 @@ import com.example.PetTama.dto.PetGetDto;
 import com.example.PetTama.entity.User;
 import com.example.PetTama.service.PetService;
 import com.example.PetTama.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user-nums/")
+@Slf4j
 public class PetApiController {
     private final PetService petSer;
     private final UserService userSer;
@@ -24,16 +26,15 @@ public class PetApiController {
 
     @GetMapping("{userId}")
     public ResponseEntity<List<PetGetDto>> getAllPets(@PathVariable Long userId, Authentication authentication) {
-        // 인증된 사용자만 접근 가능 (SecurityConfig에서 이미 제한됨)
-        // 추가로 현재 로그인한 사용자의 ID와 요청의 userId가 일치하는지 확인
+        log.info("펫 목록 요청: userId={}, authentication={}", userId, authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        log.info("사용자 정보: username={}", userDetails.getUsername());
         User user = userSer.findByEmail(userDetails.getUsername());
-
         if (!user.getId().equals(userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-
         List<PetGetDto> pets = petSer.getAllPets(userId);
+        log.info("조회된 펫 수: {}", pets.size());
         return ResponseEntity.ok(pets);
     }
 

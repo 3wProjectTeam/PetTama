@@ -29,7 +29,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/posts/**").permitAll()
                         .requestMatchers("/api/items/**").permitAll()
                         .requestMatchers("/board/**", "/shop/**").permitAll()
-                        .requestMatchers("/api/user-nums/**").authenticated()
+                        .requestMatchers("/api/user-nums/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
