@@ -184,7 +184,7 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet feed(Pet pet) {
-        if (checkIfSleeping(pet)) {
+        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
         }
         // Update time-based stats first
@@ -210,7 +210,7 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet play(Pet pet) {
-        if (checkIfSleeping(pet)) {
+        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
         }
         // Update time-based stats first
@@ -243,7 +243,7 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet brush(Pet pet) {
-        if (checkIfSleeping(pet)) {
+        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
         }
         // Update time-based stats first
@@ -269,7 +269,7 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet sleep(Pet pet) {
-        if (checkIfSleeping(pet)) {
+        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
         }
         // Update time-based stats first
@@ -358,7 +358,7 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet giveWater(Pet pet) {
-        if (checkIfSleeping(pet)) {
+        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
         }
         // Update time-based stats first
@@ -380,7 +380,7 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet giveSnack(Pet pet) {
-        if (checkIfSleeping(pet)) {
+        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
         }
         // Update time-based stats first
@@ -410,8 +410,22 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet walk(Pet pet) {
-        if (checkIfSleeping(pet)) {
+        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+        }
+        if (pet.isWalking()) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime endTime = pet.getSleepEndTime();
+            if (now.isAfter(endTime)) {
+                pet.setWalking(false);
+                pet.setWalkStartTime(null);
+                pet.setWalkEndTime(null);
+                log.info("Pet {} finish walking", pet.getName());
+            }
+            else {
+                log.info("Pet {} is walking. Cannot perform action until {}", pet.getName(), endTime);
+                return pet;
+            }
         }
         // Update time-based stats first
         updatePetStatus(pet);
@@ -433,13 +447,45 @@ public class PetFSM {
         // Walking reduces stress significantly
         int newStress = Math.max(0, pet.getStress() - 15);
         pet.setStress(newStress);
-        
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime walkEnd = now.plusMinutes(30);
+
+        pet.setWalking(true);
+        pet.setWalkStartTime(now);
+        pet.setWalkEndTime(walkEnd);
+        log.info("Pet {} started walking until {}", pet.getName(), walkEnd);
+
         // Update last interaction time
         pet.setLastUpdated(LocalDateTime.now());
         
         return pet;
     }
-    
+
+    /**
+     * 펫이 산책 중인지 확인해요~, 산책 중이면 아무것도 모태요~
+     * @param pet 선택한 Pet
+     * @return 산책 중이면 true, 아니면 false
+     */
+    public static boolean checkIfWalking(Pet pet) {
+        if (!pet.isWalking()) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = pet.getWalkEndTime();
+
+        if (endTime != null && now.isAfter(endTime)) {
+            pet.setWalking(false);
+            pet.setWalkStartTime(null);
+            pet.setWalkEndTime(null);
+            log.info("Pet {} finished walking during an action", pet.getName());
+            return false; // 산책 시간이 끝났으므로 액션 수행 가능
+        }
+
+        // 산책 중이면 액션 수행 불가
+        log.info("Pet {} 은 산책중~. Cannot perform action until {}", pet.getName(), endTime);
+        return true;
+    }
     /**
      * Gets a recommendation for the next action based on pet's current state
      * @param pet The pet to check
