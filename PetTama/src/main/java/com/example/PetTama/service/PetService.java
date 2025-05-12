@@ -49,6 +49,7 @@ public class PetService {
 
         // 수면 상태 확인
         checkSleepState(updatedPet);
+        checkWalkState(updatedPet);
 
         petRepository.save(updatedPet);
         return createEnhancedDto(updatedPet);
@@ -92,6 +93,44 @@ public class PetService {
             pet.setSleepEndTime(null);
         }
     }
+    /**
+     * 펫의 산책 상태를 확인하고 필요시 업데이트
+     * @param pet 확인할 펫
+     */
+    private void checkWalkState(Pet pet) {
+        try {
+            if (pet == null) {
+                log.warn("checkWalkState: pet is null");
+                return;
+            }
+            if (pet.isWalking()) {
+                // NullPointerException 방지
+                if (pet.getWalkEndTime() == null) {
+                    log.warn("산책 종료 시간이 null입니다: petId={}", pet.getId());
+                    pet.setWalking(false);
+                    return;
+                }
+
+                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                java.time.LocalDateTime endTime = pet.getWalkEndTime();
+
+                // 산책 시간이 끝났는지 확인
+                if (now.isAfter(endTime)) {
+                    // 산책 상태 해제
+                    pet.setWalking(false);
+                    pet.setWalkStartTime(null);
+                    pet.setWalkEndTime(null);
+                    log.info("Pet {} finished walking on status check", pet.getName());
+                }
+            }
+        } catch (Exception e) {
+            log.error("산책 상태 확인 중 오류: petId={}", pet.getId(), e);
+            // 산책 상태 확인 실패 시 기본값으로 설정
+            pet.setWalking(false);
+            pet.setWalkStartTime(null);
+            pet.setWalkEndTime(null);
+        }
+    }
 
     @Transactional
     public PetGetDto createPet(Long userId, String name, String petType) {
@@ -132,7 +171,12 @@ public class PetService {
             throw new IllegalStateException(
                     "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
-
+        if (pet.isWalking()) {
+            LocalDateTime endTime = pet.getWalkEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
+        }
         return itemService.useItem(userId, petId, itemId);
     }
 
@@ -151,7 +195,6 @@ public class PetService {
                     "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
 
-        // Use the FSM to handle playing
         Pet updatedPet = PetFSM.play(pet);
         petRepository.save(updatedPet);
 
@@ -172,7 +215,12 @@ public class PetService {
             throw new IllegalStateException(
                     "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
-
+        if (pet.isWalking()) {
+            LocalDateTime endTime = pet.getWalkEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
+        }
         Pet updatedPet = PetFSM.brush(pet);
         petRepository.save(updatedPet);
 
@@ -207,7 +255,12 @@ public class PetService {
             throw new IllegalStateException(
                     "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
-
+        if (pet.isWalking()) {
+            LocalDateTime endTime = pet.getWalkEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
+        }
         // Use the FSM to handle giving water
         Pet updatedPet = PetFSM.giveWater(pet);
         petRepository.save(updatedPet);
@@ -229,7 +282,12 @@ public class PetService {
             throw new IllegalStateException(
                     "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
-
+        if (pet.isWalking()) {
+            LocalDateTime endTime = pet.getWalkEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
+        }
         // Use the FSM to handle giving snack
         Pet updatedPet = PetFSM.giveSnack(pet);
         petRepository.save(updatedPet);
@@ -251,7 +309,12 @@ public class PetService {
             throw new IllegalStateException(
                     "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
-
+        if (pet.isWalking()) {
+            LocalDateTime endTime = pet.getWalkEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
+        }
         // Use the FSM to handle walking
         Pet updatedPet = PetFSM.walk(pet);
         petRepository.save(updatedPet);

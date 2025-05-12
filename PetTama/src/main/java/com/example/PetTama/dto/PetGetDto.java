@@ -23,14 +23,16 @@ public class PetGetDto {
     private LocalDateTime lastFedTime;
     private boolean sleeping;
     private LocalDateTime sleepEndTime;
+    private boolean walking;
+    private LocalDateTime walkEndTime;
 
-    // null 체크 추가
     public void setSleeping(Boolean sleeping) {
-        // null이 전달되면 false로 설정
         this.sleeping = (sleeping != null) ? sleeping : false;
     }
+    public void setWalking(Boolean walking) {
+        this.walking = (walking != null) ? walking : false;
+    }
 
-    // 기존 생성자 유지
     public PetGetDto(Long id, String name, String petType, int hp, int fullness, int happiness, int tired, int thirsty, int stress) {
         this.id = id;
         this.name = name;
@@ -41,6 +43,6 @@ public class PetGetDto {
         this.tired = tired;
         this.thirsty = thirsty;
         this.stress = stress;
-        this.sleeping = false; // 기본값 설정
+        this.sleeping = false;
     }
 }

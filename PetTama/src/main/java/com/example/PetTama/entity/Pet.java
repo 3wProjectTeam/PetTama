@@ -61,12 +61,23 @@ public class Pet {
     @Column(name = "sleep_end_time")
     private LocalDateTime sleepEndTime;
 
+    @Column(name = "is_walking", nullable = false)
+    private boolean walking = false;
+
+    @Column(name = "walk_start_time")
+    private LocalDateTime walkStartTime;
+
+    @Column(name = "walk_end_time")
+    private LocalDateTime walkEndTime;
     // sleeping 설정 메서드 추가 - null 체크 포함
+
     public void setSleeping(Boolean sleeping) {
         // null이 전달되면 false로 설정
         this.sleeping = (sleeping != null) ? sleeping : false;
     }
-
+    public void setWalking(Boolean walking) {
+        this.walking = (walking != null) ? walking : false;
+    }
     /**
      * Converts this Pet entity to a DTO with additional state information
      * @return Enhanced PetGetDto with current state and recommendations
@@ -86,17 +97,14 @@ public class Pet {
             );
 
             try {
-                // 현재 상태 추가
                 PetFSM.PetState currentState = PetFSM.getCurrentState(pet);
                 dto.setState(currentState);
             } catch (Exception e) {
                 log.error("상태 결정 중 오류: petId={}", pet.getId(), e);
-                // 오류 발생 시 기본 상태 설정
                 dto.setState(PetFSM.PetState.HAPPY);
             }
 
             try {
-                // 권장 사항 추가
                 String recommendation = PetFSM.getActionRecommendation(pet);
                 dto.setRecommendation(recommendation);
             } catch (Exception e) {
@@ -104,10 +112,10 @@ public class Pet {
                 // 오류 발생 시 기본 권장 사항 설정
                 dto.setRecommendation("펫을 돌봐주세요.");
             }
-            // 마지막 먹이 시간 추가
             dto.setLastFedTime(pet.getLastFedTime());
-            // 수면 상태 추가
             dto.setSleeping(pet.isSleeping());
+            dto.setSleepEndTime(pet.getSleepEndTime());
+            dto.setWalking(pet.isWalking());
             dto.setSleepEndTime(pet.getSleepEndTime());
             return dto;
         } catch (Exception e) {
