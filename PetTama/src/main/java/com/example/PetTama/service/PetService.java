@@ -326,7 +326,49 @@ public class PetService {
      * Creates an enhanced DTO that includes additional information like the current state and recommendations
      */
     private PetGetDto createEnhancedDto(Pet pet) {
-        PetGetDto dto = pet.toDto(pet);
-        return dto;
+        try {
+            PetGetDto dto = new PetGetDto(
+                    pet.getId(),
+                    pet.getName(),
+                    pet.getPetType() != null ? pet.getPetType() : "CAT",
+                    pet.getHp(),
+                    pet.getFullness(),
+                    pet.getHappiness(),
+                    pet.getTired(),
+                    pet.getThirsty(),
+                    pet.getStress()
+            );
+
+            try {
+                PetFSM.PetState currentState = PetFSM.getCurrentState(pet);
+                dto.setState(currentState);
+            } catch (Exception e) {
+                log.error("상태 결정 중 오류: petId={}", pet.getId(), e);
+                dto.setState(PetFSM.PetState.HAPPY);
+            }
+
+            try {
+                // 각 펫 상태에 맞는 개별 recommendation 생성
+                String recommendation = PetFSM.getActionRecommendation(pet);
+                dto.setRecommendation(recommendation);
+            } catch (Exception e) {
+                log.error("권장 사항 생성 중 오류: petId={}", pet.getId(), e);
+                // 오류 발생 시 기본 권장 사항 설정
+                dto.setRecommendation("펫을 돌봐주세요.");
+            }
+
+            dto.setLastFedTime(pet.getLastFedTime());
+            dto.setSleeping(pet.isSleeping());
+            dto.setSleepEndTime(pet.getSleepEndTime());
+            dto.setWalking(pet.isWalking());
+            dto.setSleepEndTime(pet.getSleepEndTime());
+            return dto;
+        } catch (Exception e) {
+            log.error("DTO 변환 중 오류: petId={}", pet.getId(), e);
+            PetGetDto fallbackDto = new PetGetDto();
+            // 기본 정보 설정
+            // ...
+            return fallbackDto;
+        }
     }
 }
