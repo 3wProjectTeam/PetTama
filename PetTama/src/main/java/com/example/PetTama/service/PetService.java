@@ -45,20 +45,58 @@ public class PetService {
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
+
+        // 시간 기반 상태 업데이트
         Pet updatedPet = PetFSM.updatePetStatus(pet);
 
-        // 수면 상태 확인
-        checkSleepState(updatedPet);
-        checkWalkState(updatedPet);
+        // 명시적인 상태 확인 및 업데이트
+        boolean changed = false;
 
-        petRepository.save(updatedPet);
+        // 수면 상태 확인
+        if (updatedPet.isSleeping()) {
+            LocalDateTime now = LocalDateTime.now();
+            if (updatedPet.getSleepEndTime() == null) {
+                log.warn("Pet {} has sleeping=true but no end time", updatedPet.getName());
+                updatedPet.setSleeping(false);
+                changed = true;
+            } else if (now.isAfter(updatedPet.getSleepEndTime())) {
+                log.info("Pet {} sleep time ended, updating state", updatedPet.getName());
+                updatedPet.setSleeping(false);
+                updatedPet.setSleepStartTime(null);
+                updatedPet.setSleepEndTime(null);
+                changed = true;
+            }
+        }
+
+        // 산책 상태 확인
+        if (updatedPet.isWalking()) {
+            LocalDateTime now = LocalDateTime.now();
+            if (updatedPet.getWalkEndTime() == null) {
+                log.warn("Pet {} has walking=true but no end time", updatedPet.getName());
+                updatedPet.setWalking(false);
+                changed = true;
+            } else if (now.isAfter(updatedPet.getWalkEndTime())) {
+                log.info("Pet {} walk time ended, updating state", updatedPet.getName());
+                updatedPet.setWalking(false);
+                updatedPet.setWalkStartTime(null);
+                updatedPet.setWalkEndTime(null);
+                changed = true;
+            }
+        }
+
+        // 상태가 변경되었다면 저장
+        if (changed) {
+            updatedPet = petRepository.save(updatedPet);
+            log.info("Updated pet state in database: sleeping={}, walking={}",
+                    updatedPet.isSleeping(), updatedPet.isWalking());
+        }
         return createEnhancedDto(updatedPet);
     }
 
-    /**
+     /**
      * 펫의 수면 상태를 확인하고 필요시 업데이트
-     * @param pet 확인할 펫
-     */
+      * @param pet 확인할 펫
+      */
     private void checkSleepState(Pet pet) {
         try {
             if (pet == null) {
@@ -104,31 +142,28 @@ public class PetService {
                 return;
             }
             if (pet.isWalking()) {
-                // NullPointerException 방지
                 if (pet.getWalkEndTime() == null) {
                     log.warn("산책 종료 시간이 null입니다: petId={}", pet.getId());
                     pet.setWalking(false);
                     return;
                 }
-
                 java.time.LocalDateTime now = java.time.LocalDateTime.now();
                 java.time.LocalDateTime endTime = pet.getWalkEndTime();
-
-                // 산책 시간이 끝났는지 확인
                 if (now.isAfter(endTime)) {
-                    // 산책 상태 해제
                     pet.setWalking(false);
                     pet.setWalkStartTime(null);
                     pet.setWalkEndTime(null);
                     log.info("Pet {} finished walking on status check", pet.getName());
+                    // 중요: 여기서 pet 저장 추가
+                    petRepository.save(pet);
                 }
             }
         } catch (Exception e) {
             log.error("산책 상태 확인 중 오류: petId={}", pet.getId(), e);
-            // 산책 상태 확인 실패 시 기본값으로 설정
             pet.setWalking(false);
             pet.setWalkStartTime(null);
             pet.setWalkEndTime(null);
+            petRepository.save(pet);
         }
     }
 
@@ -194,7 +229,11 @@ public class PetService {
             throw new IllegalStateException(
                     "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
         }
-
+        if (pet.isWalking()) {
+            LocalDateTime endTime = pet.getWalkEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException("펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
+        }
         Pet updatedPet = PetFSM.play(pet);
         petRepository.save(updatedPet);
 
@@ -234,9 +273,17 @@ public class PetService {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
 
-        // Use the FSM to handle sleeping
         Pet updatedPet = PetFSM.sleep(pet);
-        petRepository.save(updatedPet);
+
+        // 로그 추가 - 저장 전 상태 확인
+        log.info("Before save - Pet sleeping: {}, start: {}, end: {}",
+                updatedPet.isSleeping(), updatedPet.getSleepStartTime(), updatedPet.getSleepEndTime());
+
+        updatedPet = petRepository.save(updatedPet);
+
+        // 로그 추가 - 저장 후 상태 확인
+        log.info("After save - Pet sleeping: {}, start: {}, end: {}",
+                updatedPet.isSleeping(), updatedPet.getSleepStartTime(), updatedPet.getSleepEndTime());
 
         return createEnhancedDto(updatedPet);
     }
