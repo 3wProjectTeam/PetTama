@@ -940,4 +940,67 @@ footer {
         align-items: center;
         line-height: 1.2;
     }
+    /* 산책 중 상태 스타일 */
+    .pet-state-badge.walking {
+        background-color: #4FC3F7; /* 밝은 파란색 */
+        color: white;
+        animation: pulse 1.5s infinite;
+    }
+
+    /* 산책 중 버튼 스타일 */
+    .action-button[data-action="walk"].cooldown {
+        opacity: 0.8;
+        cursor: not-allowed;
+        position: relative;
+        background-color: #E1F5FE; /* 연한 파란색 배경 */
+        border: 1px solid #4FC3F7;
+    }
+
+    /* 산책 아이콘 스타일 */
+    .action-button[data-action="walk"].cooldown .action-icon {
+        color: #4FC3F7;
+        font-size: 1.8rem;
+    }
+
+    /* 산책 중 텍스트 스타일 */
+    .action-button[data-action="walk"].cooldown .action-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1.2;
+        color: #0288D1;
+        font-weight: 500;
+    }
+
+    /* 남은 시간 표시 스타일 */
+    .cooldown-text {
+        font-size: 0.75rem;
+        color: #0288D1;
+        font-weight: normal;
+        margin-top: 0.25rem;
+    }
+
+    /* 펄스 애니메이션 (깜빡임 효과) */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+
+    /* 산책 중 상태 표시 */
+    .pet-state-badge.walking::before {
+        content: "🚶";
+        margin-right: 4px;
+    }
+
+    /* 산책 아이콘 애니메이션 */
+    .action-button[data-action="walk"].cooldown .action-icon {
+        animation: walking 2s infinite;
+    }
+
+    @keyframes walking {
+        0% { transform: translateX(-2px); }
+        50% { transform: translateX(2px); }
+        100% { transform: translateX(-2px); }
+    }
 }

@@ -493,26 +493,26 @@ public class PetFSM {
      */
     public static String getActionRecommendation(Pet pet) {
         PetState currentState = getCurrentState(pet);
-        
+
         switch (currentState) {
             case HUNGRY:
-                return "Your pet is hungry! Please feed them.";
+                return "당신의 펫이 배고파합니다! 밥을 주세요.";
             case TIRED:
-                return "Your pet is tired! Let them sleep.";
+                return "당신의 펫이 피곤합니다! 휴식을 취하게 해주세요.";
             case THIRSTY:
-                return "Your pet is thirsty! Give them water.";
+                return "당신의 펫이 목말라합니다! 물을 주세요.";
             case BORED:
-                return "Your pet is bored! Play with them.";
+                return "당신의 펫이 지루해합니다! 놀아주세요.";
             case STRESSED:
-                return "Your pet is stressed! Try brushing them or taking them for a walk.";
+                return "당신의 펫이 스트레스를 받고 있습니다! 빗질이나 산책을 시켜주세요.";
             case SICK:
-                return "Your pet is not feeling well! Make sure all their needs are met.";
+                return "당신의 펫이 아픕니다! 모든 상태를 관리해주세요.";
             case CRITICAL:
-                return "WARNING! Your pet is in critical condition! Attend to their needs immediately!";
+                return "경고! 당신의 펫이 위험한 상태입니다! 즉시 관리가 필요합니다!";
             case HAPPY:
-                return "Your pet is happy and healthy!";
+                return "당신의 펫이 행복하고 건강합니다!";
             default:
-                return "Check on your pet regularly.";
+                return "정기적으로 펫을 확인해주세요.";
         }
     }
 }

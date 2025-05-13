@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 일정 시간 후 메시지 숨김
         if (duration > 0) {
-            setTimeout(function() {
+            setTimeout(function () {
                 element.textContent = '';
                 element.classList.remove(type);
             }, duration);
@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('펫 목록 로드 성공:', pets);
 
             // petType이 없는 경우 기본값 설정
-            petsData = pets.map(function(pet, index) {
+            petsData = pets.map(function (pet, index) {
                 if (!pet.petType) {
                     pet.petType = 'CAT';
                 }
@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        pets.forEach(function(pet) {
+        pets.forEach(function (pet) {
             const li = document.createElement('li');
             // 펫 타입에 따른 이모지 표시
             const petEmoji = petEmojis[pet.petType] || petEmojis.default;
@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
             li.dataset.petId = pet.id;
 
             // 펫 클릭 시 상세 정보 표시
-            li.addEventListener('click', function() {
+            li.addEventListener('click', function () {
                 fetchPetDetails(currentUserId, pet.id);
             });
 
@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function highlightSelectedPet(petId) {
         // 모든 항목에서 선택 클래스 제거
-        document.querySelectorAll('#petList li').forEach(function(item) {
+        document.querySelectorAll('#petList li').forEach(function (item) {
             item.classList.remove('selected');
         });
 
@@ -387,9 +387,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateStatBar('thirsty', pet.thirsty);
         updateStatBar('stress', pet.stress);
 
-        // 상태 정보 업데이트
-        updatePetState(pet);
-
         // 먹이 버튼 쿨타임 상태 업데이트
         updateFeedButtonCooldown(pet);
 
@@ -403,6 +400,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (now >= sleepEndTime) {
                 // 수면 종료됨 - 버튼 활성화
                 toggleActionButtons(false);
+                // 일반 상태 업데이트
+                updatePetState(pet);
             } else {
                 // 아직 수면 중 - 버튼 비활성화
                 toggleActionButtons(true, sleepEndTime);
@@ -421,8 +420,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 수면 타이머 시작
                 startSleepTimer(sleepEndTime);
             }
+        } else if (pet.walking) {
+            // 산책 종료 시간 가져오기
+            const walkEndTime = new Date(pet.walkEndTime);
+            const now = new Date();
+
+            // 산책 상태가 종료되었는지 확인
+            if (now >= walkEndTime) {
+                // 산책 종료됨 - 버튼 활성화
+                toggleActionButtons(false);
+                // 일반 상태 업데이트
+                updatePetState(pet);
+            } else {
+                // 아직 산책 중 - 버튼 비활성화
+                toggleActionButtons(true, null, walkEndTime);
+
+                // 산책 중 상태 표시
+                petStateBadge.textContent = '산책 중';
+                petStateBadge.className = 'pet-state-badge';
+                petStateBadge.classList.add('walking');
+
+                // 산책 아이콘으로 변경
+                petImage.textContent = '🚶';
+
+                // 추천 메시지 변경
+                petRecommendation.textContent = '펫이 산책 중입니다. 다른 활동은 잠시 기다려주세요.';
+
+                // 산책 타이머 시작
+                startWalkTimer(walkEndTime);
+            }
         } else {
-            // 수면 중이 아님 - 버튼 활성화
+            // 수면 중이나 산책 중이 아님 - 일반 상태 업데이트
+            updatePetState(pet);
+
+            // 펫의 상태에 맞는 recommendation 업데이트
+            if (pet.recommendation) {
+                // 서버에서 받은 recommendation이 있으면 사용
+                petRecommendation.textContent = pet.recommendation;
+            } else {
+                // 없으면 클라이언트 측에서 상태에 맞는 메시지 생성
+                const state = pet.state || determineState(pet);
+                petRecommendation.textContent = getDefaultRecommendation(state);
+            }
+
+            // 버튼 활성화
             toggleActionButtons(false);
         }
     }
@@ -470,15 +511,18 @@ document.addEventListener('DOMContentLoaded', function() {
      * 펫 상태 정보 업데이트
      * @param {Object} pet - 펫 데이터
      */
+    /**
+     * 펫 상태 정보 업데이트
+     * @param {Object} pet - 펫 데이터
+     */
     function updatePetState(pet) {
-        // 수면 중이면 별도 처리
-        if (pet.sleeping) {
+        // 수면 중이거나 산책 중이면 해당 함수에서 처리하지 않음 (displayPetDetails에서 처리)
+        if (pet.sleeping || pet.walking) {
             return;
         }
 
-        // FSM에서 상태 정보가 오는 경우
+        // FSM에서 상태 정보가 오는 경우 또는 클라이언트에서 결정
         const state = pet.state || determineState(pet);
-        const recommendation = pet.recommendation || getDefaultRecommendation(state);
 
         // 펫 타입에 맞는 이모지 가져오기
         const petTypeEmoji = petEmojis[pet.petType] || petEmojis.default;
@@ -494,15 +538,77 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             petImage.textContent = petTypeEmoji;
         }
+    }
+
+    let walkTimerInterval = null;
+    // 산책 타이머
+    function startWalkTimer(walkEndTime) {
+        if (walkTimerInterval) {
+            clearInterval(walkTimerInterval);
+        }
+        // 10초마다 업데이트
+        walkTimerInterval = setInterval(() => {
+            updateWalkTimerDisplay(walkEndTime);
+        }, 10000);
+
+        updateWalkTimerDisplay(walkEndTime);
+    }
+
+
+// 산책 타이머 표시 업데이트 함수
+    function updateWalkTimerDisplay(walkEndTime) {
+        const now = new Date();
+        const endTime = new Date(walkEndTime);
+
+        // 산책이 종료되었는지 확인
+        if (now >= endTime) {
+            // 타이머 중지
+            clearInterval(walkTimerInterval);
+            walkTimerInterval = null;
+
+            // 최신 정보 가져오기
+            if (currentUserId && currentPetId) {
+                fetchPetDetails(currentUserId, currentPetId);
+            }
+
+            return;
+        }
+        // 남은 시간 계산
+        const diffMs = endTime - now;
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+        // 산책 버튼 텍스트 업데이트
+        const walkButton = document.querySelector('.action-button[data-action="walk"]');
+        if (walkButton) {
+            const actionLabel = walkButton.querySelector('.action-label');
+            if (actionLabel) {
+                actionLabel.innerHTML = `산책 중...<br><span class="cooldown-text">${diffMinutes}분 ${diffSeconds}초 후 완료</span>`;
+            }
+        }
+
+        // 상태 배지 및 이미지 업데이트
+        const petStateBadge = document.querySelector('.pet-state-badge');
+        const petImage = document.querySelector('.pet-image');
+        if (petStateBadge && petImage) {
+            petStateBadge.textContent = '산책 중';
+            petStateBadge.className = 'pet-state-badge walking';
+            petImage.textContent = '🚶';
+        }
 
         // 추천 메시지 업데이트
-        petRecommendation.textContent = recommendation;
+        const petRecommendation = document.getElementById('petRecommendation');
+        if (petRecommendation) {
+            petRecommendation.textContent = `펫이 산책 중입니다. ${diffMinutes}분 ${diffSeconds}초 후에 돌아옵니다.`;
+        }
     }
+
 
     /**
      * 먹이 버튼의 쿨타임 상태 업데이트
      * @param {Object} pet - 펫 데이터
      */
+    // 먹이 버튼의 쿨타임 상태 업데이트 함수 수정 (쿨타임 제거)
     function updateFeedButtonCooldown(pet) {
         const feedButton = document.querySelector('.action-button[data-action="feed"]');
         if (!feedButton) return; // 버튼이 없는 경우 종료
@@ -515,78 +621,11 @@ document.addEventListener('DOMContentLoaded', function() {
         feedButton.classList.remove('cooldown');
         feedActionLabel.innerHTML = originalLabel;
 
-        // 마지막 먹이 시간이 있는 경우 쿨타임 계산
-        if (pet.lastFedTime) {
-            const lastFed = new Date(pet.lastFedTime);
-            const now = new Date();
-            const diffMs = now - lastFed;
-            const diffHours = diffMs / (1000 * 60 * 60);
-
-            // 5시간 쿨타임 적용
-            if (diffHours < 5) {
-                // 남은 시간 계산 (시:분 형식, 초 단위 제외)
-                const remainingMs = (5 * 60 * 60 * 1000) - diffMs;
-                const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-                const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-
-                // 남은 시간 형식화 (초 단위 표시 제거)
-                let timeText = '';
-                if (remainingHours > 0) {
-                    timeText = `${remainingHours}시간 ${remainingMinutes}분 후`;
-                } else {
-                    timeText = `${remainingMinutes}분 후`;
-                }
-
-                // 먹이 버튼 비활성화 및 남은 시간 표시
-                feedButton.disabled = true;
-                feedButton.classList.add('cooldown');
-                feedActionLabel.innerHTML = `밥 주기<br><span class="cooldown-text">${timeText}</span>`;
-
-                // 기존 타이머가 있으면 정리
-                if (feedCooldownTimer) {
-                    clearInterval(feedCooldownTimer);
-                }
-
-                // 1분마다 남은 시간 업데이트하는 타이머 설정 (1000ms * 60 = 60000ms = 1분)
-                feedCooldownTimer = setInterval(() => {
-                    const updatedNow = new Date();
-                    const updatedDiffMs = updatedNow - lastFed;
-                    const updatedRemainingMs = (5 * 60 * 60 * 1000) - updatedDiffMs;
-
-                    if (updatedRemainingMs <= 0) {
-                        // 쿨타임 종료
-                        clearInterval(feedCooldownTimer);
-                        feedCooldownTimer = null;
-
-                        // 버튼 상태 복원
-                        feedButton.disabled = false;
-                        feedButton.classList.remove('cooldown');
-                        feedActionLabel.innerHTML = originalLabel;
-                        return;
-                    }
-
-                    // 남은 시간 업데이트 (초 단위 표시 제거)
-                    const updatedHours = Math.floor(updatedRemainingMs / (1000 * 60 * 60));
-                    const updatedMinutes = Math.floor((updatedRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
-
-                    let updatedTimeText = '';
-                    if (updatedHours > 0) {
-                        updatedTimeText = `${updatedHours}시간 ${updatedMinutes}분 후`;
-                    } else {
-                        updatedTimeText = `${updatedMinutes}분 후`;
-                    }
-
-                    // 버튼 텍스트 업데이트
-                    feedActionLabel.innerHTML = `밥 주기<br><span class="cooldown-text">${updatedTimeText}</span>`;
-                }, 60000); // 1분마다 업데이트 (1000ms * 60 = 60000ms)
-
-            } else {
-                // 쿨타임이 지났으면 타이머 초기화
-                if (feedCooldownTimer) {
-                    clearInterval(feedCooldownTimer);
-                    feedCooldownTimer = null;
-                }
-            }
+        // 쿨타임 체크 부분 제거
+        // 기존 쿨타임 타이머가 있으면 정리
+        if (feedCooldownTimer) {
+            clearInterval(feedCooldownTimer);
+            feedCooldownTimer = null;
         }
     }
 
@@ -595,7 +634,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {boolean} disabled - 버튼 비활성화 여부
      * @param {Date} [endTime] - 수면 종료 시간 (선택적)
      */
-    function toggleActionButtons(disabled, endTime) {
+    function toggleActionButtons(disabled, sleepEndTime, walkEndTime) {
         const actionButtons = document.querySelectorAll('.action-button');
 
         actionButtons.forEach(button => {
@@ -605,30 +644,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.classList.add('cooldown');
 
                 // 수면 버튼인 경우 특별 처리
-                if (button.dataset.action === 'sleep') {
+                if (button.dataset.action === 'sleep' && sleepEndTime) {
                     const actionLabel = button.querySelector('.action-label');
                     if (actionLabel) {
                         // 남은 시간 계산 및 표시
-                        if (endTime) {
-                            const now = new Date();
-                            const diffMs = endTime - now;
-                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        const now = new Date();
+                        const diffMs = sleepEndTime - now;
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
-                            actionLabel.innerHTML = `자는 중...<br><span class="cooldown-text">${diffHours}시간 ${diffMinutes}분 후 기상</span>`;
-                        } else {
-                            actionLabel.innerHTML = '자는 중...';
-                        }
+                        actionLabel.innerHTML = `자는 중...<br><span class="cooldown-text">${diffHours}시간 ${diffMinutes}분 후 기상</span>`;
+                    }
+                }
+
+                // 산책 버튼인 경우 특별 처리
+                if (button.dataset.action === 'walk' && walkEndTime) {
+                    const actionLabel = button.querySelector('.action-label');
+                    if (actionLabel) {
+                        // 남은 시간 계산 및 표시
+                        const now = new Date();
+                        const diffMs = walkEndTime - now;
+                        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                        const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+                        actionLabel.innerHTML = `산책 중...<br><span class="cooldown-text">${diffMinutes}분 ${diffSeconds}초 후 완료</span>`;
                     }
                 }
             } else {
                 button.classList.remove('cooldown');
 
-                // 수면 버튼 원래대로 복원
+                // 버튼 원래대로 복원
                 if (button.dataset.action === 'sleep') {
                     const actionLabel = button.querySelector('.action-label');
                     if (actionLabel) {
                         actionLabel.textContent = '재우기';
+                    }
+                }
+
+                if (button.dataset.action === 'walk') {
+                    const actionLabel = button.querySelector('.action-label');
+                    if (actionLabel) {
+                        actionLabel.textContent = '산책하기';
                     }
                 }
             }
@@ -744,6 +800,50 @@ document.addEventListener('DOMContentLoaded', function() {
         return false; // 처리되지 않음
     }
 
+// 산책 상태 관련 에러 처리 함수 추가
+    function handleWalkError(errorMessage) {
+        // "펫이 산책 중입니다" 메시지를 포함하는 오류 확인
+        if (errorMessage.includes("펫이 산책 중입니다")) {
+            // 시간 정보 추출 (형식: "펫이 산책 중입니다. YYYY-MM-DD HH:MM:SS까지 다른 활동을 할 수 없습니다.")
+            const dateTimeMatch = errorMessage.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+
+            if (dateTimeMatch && dateTimeMatch[1]) {
+                const walkEndTimeStr = dateTimeMatch[1];
+                const walkEndTime = new Date(walkEndTimeStr.replace(' ', 'T') + '.000+09:00'); // UTC+9 (한국 시간대) 처리
+
+                // 현재 시간과 종료 시간의 차이 계산
+                const now = new Date();
+                const diffMs = walkEndTime - now;
+
+                if (diffMs > 0) {
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+                    // 버튼 비활성화 및 상태 업데이트
+                    toggleActionButtons(true, null, walkEndTime);
+
+                    // 산책 상태 시각적 표시
+                    petStateBadge.textContent = '산책 중';
+                    petStateBadge.className = 'pet-state-badge walking';
+
+                    // 산책 아이콘으로 변경
+                    petImage.textContent = '🚶';
+
+                    // 산책 상태 메시지 표시
+                    petRecommendation.textContent = `펫이 산책 중입니다. ${diffMinutes}분 ${diffSeconds}초 후에 돌아옵니다.`;
+
+                    // 산책 타이머 시작
+                    startWalkTimer(walkEndTime);
+
+                    return true; // 처리 완료
+                }
+            }
+        }
+
+        return false; // 처리되지 않음
+    }
+
+
     /**
      * 펫 상태 결정 (백엔드 상태 정보가 없는 경우 대비)
      * @param {Object} pet - 펫 데이터
@@ -803,7 +903,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const newPet = await fetchAPI(
                 `${API_BASE_URL}/${currentUserId}?name=${encodeURIComponent(name)}&petType=${encodeURIComponent(petType)}`,
-                { method: 'POST' }
+                {method: 'POST'}
             );
 
             showStatusMessage(creationStatusP, `"${newPet.name}" 생성 완료!`, 'success');
@@ -847,12 +947,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 updatedPet.petType = existingPet ? existingPet.petType : 'CAT';
             }
 
-            displayPetDetails(updatedPet);
+            // 산책 액션 특별 처리
+            if (action === 'walk' && updatedPet.walking) {
+                const walkEndTime = new Date(updatedPet.walkEndTime);
 
-            // 성공 메시지
-            if (action === 'sleep') {
-                showStatusMessage(actionStatusP, `"${getActionName(action)}" 완료! 펫이 8시간 동안 잠을 잡니다.`, 'success');
+                // 버튼 비활성화 및 상태 업데이트
+                toggleActionButtons(true, null, walkEndTime);
+
+                // 산책 상태 표시
+                const petStateBadge = document.querySelector('.pet-state-badge');
+                const petImage = document.querySelector('.pet-image');
+                if (petStateBadge && petImage) {
+                    petStateBadge.textContent = '산책 중';
+                    petStateBadge.className = 'pet-state-badge walking';
+                    petImage.textContent = '🚶';
+                }
+
+                // 산책 타이머 시작
+                startWalkTimer(walkEndTime);
+
+                showStatusMessage(actionStatusP, `"${getActionName(action)}" 완료! 펫이 30분 동안 산책합니다.`, 'success');
             } else {
+                displayPetDetails(updatedPet);
                 showStatusMessage(actionStatusP, `"${getActionName(action)}" 완료!`, 'success');
             }
 
@@ -865,7 +981,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error(`${action} 액션 실패:`, error);
 
             // 수면 상태 에러 특별 처리
-            if (!handleSleepError(error.message)) {
+            if (!handleSleepError(error.message) && !handleWalkError(error.message)) {
                 showStatusMessage(actionStatusP, `${getActionName(action)} 실패: ${error.message}`, 'error');
             }
         }
@@ -926,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 아이템 사용 버튼에 이벤트 리스너 추가
             document.querySelectorAll('.use-feed-button').forEach(button => {
-                button.addEventListener('click', function() {
+                button.addEventListener('click', function () {
                     const itemId = parseInt(this.dataset.itemId, 10);
                     useFeedItem(currentPetId, itemId);
                     document.getElementById('feedModal').style.display = 'none';
@@ -952,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 아이템 사용 API 호출
             const updatedPet = await fetchAPI(
                 `/api/items/use/${currentUserId}/${petId}/${itemId}`,
-                { method: 'POST' }
+                {method: 'POST'}
             );
 
             // 펫 정보 업데이트
@@ -1029,8 +1145,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 펫 타입 선택 이벤트
     if (petTypeOptions.length > 0) {
-        petTypeOptions.forEach(function(option) {
-            option.addEventListener('click', function() {
+        petTypeOptions.forEach(function (option) {
+            option.addEventListener('click', function () {
                 // 기존 선택 해제
                 petTypeOptions.forEach(opt => opt.classList.remove('selected'));
 
@@ -1046,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 펫 생성 버튼
     if (createPetButton) {
-        createPetButton.addEventListener('click', function() {
+        createPetButton.addEventListener('click', function () {
             const petName = petNameInput.value.trim();
 
             if (!petName) {
@@ -1069,8 +1185,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 펫 관리 액션 버튼들
-    actionButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
+    actionButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
             if (!currentUserId || !currentPetId) {
                 showStatusMessage(actionStatusP, '먼저 펫을 선택해주세요.', 'error');
                 return;
@@ -1092,14 +1208,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 먹이 선택 취소 버튼 이벤트 리스너
     if (cancelFeedButton) {
-        cancelFeedButton.addEventListener('click', function() {
+        cancelFeedButton.addEventListener('click', function () {
             feedModal.style.display = 'none';
         });
     }
 
     // 모달 외부 클릭 시 닫기
     if (feedModal) {
-        feedModal.addEventListener('click', function(e) {
+        feedModal.addEventListener('click', function (e) {
             if (e.target === feedModal) {
                 feedModal.style.display = 'none';
             }
@@ -1110,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchCurrentUser();
 
     // 페이지 벗어날 때 타이머 정리
-    window.addEventListener('beforeunload', function() {
+    window.addEventListener('beforeunload', function () {
         if (feedCooldownTimer) {
             clearInterval(feedCooldownTimer);
         }
@@ -1119,67 +1235,150 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(sleepTimerInterval);
         }
     });
-});
-
 // 로그인 상태 표시
-document.addEventListener('DOMContentLoaded', async function() {
-    const authButtons = document.getElementById('authButtons');
+    document.addEventListener('DOMContentLoaded', async function () {
+        const authButtons = document.getElementById('authButtons');
 
-    try {
-        const response = await fetch('/api/auth/user');
+        try {
+            const response = await fetch('/api/auth/user');
 
-        if (response.ok) {
-            // 로그인된 상태
-            const user = await response.json();
-            authButtons.innerHTML = `
+            if (response.ok) {
+                // 로그인된 상태
+                const user = await response.json();
+                authButtons.innerHTML = `
                 <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
                     <button type="submit" class="navigation-button">로그아웃</button>
                 </form>
             `;
-        } else {
-            // 로그인되지 않은 상태
-            authButtons.innerHTML = `<a href="/auth/login" class="navigation-button">로그인</a>`;
+            } else {
+                // 로그인되지 않은 상태
+                authButtons.innerHTML = `<a href="/auth/login" class="navigation-button">로그인</a>`;
+            }
+        } catch (error) {
+            console.error('로그인 상태 확인 실패:', error);
         }
-    } catch (error) {
-        console.error('로그인 상태 확인 실패:', error);
+    });
+
+    /**
+     * 환영 메시지 표시
+     * @param {string} nickname - 사용자 닉네임
+     */
+    function displayWelcomeMessage(nickname) {
+        const welcomeMsg = document.createElement('div');
+        welcomeMsg.className = 'welcome-message';
+        welcomeMsg.innerHTML = `<p>${nickname}님, 환영합니다! 펫을 선택하거나 새 펫을 만들어보세요.</p>`;
+
+        const petListSection = document.querySelector('.pet-list-section');
+        if (petListSection) {
+            // 기존 환영 메시지가 있으면 제거
+            const existingMsg = petListSection.querySelector('.welcome-message');
+            if (existingMsg) {
+                existingMsg.remove();
+            }
+            petListSection.prepend(welcomeMsg);
+        }
     }
+
+    /**
+     * 타이머 시간 형식화
+     * @param {number} milliseconds - 밀리초
+     * @returns {string} - 형식화된 시간 문자열
+     */
+    function formatTimeRemaining(milliseconds) {
+        const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+        const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+
+        if (hours > 0) {
+            return `${hours}시간 ${minutes}분 후`;
+        } else if (minutes > 0) {
+            return `${minutes}분 ${seconds}초 후`;
+        } else {
+            return `${seconds}초 후`;
+        }
+    }
+})
+// CSS 스타일 추가를 위한 함수
+function addWalkingStyles() {
+    if (document.getElementById('walking-styles')) return;
+
+    const styleElement = document.createElement('style');
+    styleElement.id = 'walking-styles';
+    styleElement.textContent = `
+        .pet-state-badge.walking {
+            background-color: #4FC3F7;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+    `;
+
+    document.head.appendChild(styleElement);
+}
+// 페이지 로드 시 스타일 추가
+document.addEventListener('DOMContentLoaded', function() {
+    addWalkingStyles();
+
+    // 기존 이벤트 리스너 및 초기화 코드...
 });
 
-/**
- * 환영 메시지 표시
- * @param {string} nickname - 사용자 닉네임
- */
-function displayWelcomeMessage(nickname) {
-    const welcomeMsg = document.createElement('div');
-    welcomeMsg.className = 'welcome-message';
-    welcomeMsg.innerHTML = `<p>${nickname}님, 환영합니다! 펫을 선택하거나 새 펫을 만들어보세요.</p>`;
+// 페이지 벗어날 때 타이머 정리 수정
+window.addEventListener('beforeunload', function() {
+    if (feedCooldownTimer) {
+        clearInterval(feedCooldownTimer);
+    }
 
-    const petListSection = document.querySelector('.pet-list-section');
-    if (petListSection) {
-        // 기존 환영 메시지가 있으면 제거
-        const existingMsg = petListSection.querySelector('.welcome-message');
-        if (existingMsg) {
-            existingMsg.remove();
+    if (sleepTimerInterval) {
+        clearInterval(sleepTimerInterval);
+    }
+
+    if (walkTimerInterval) {
+        clearInterval(walkTimerInterval);
+    }
+});
+// performPetAction 함수 내에서 산책 액션 처리 부분
+if (action === 'walk') {
+    // 산책 버튼 상태 업데이트
+    const walkButton = document.querySelector('.action-button[data-action="walk"]');
+    const actionLabel = walkButton.querySelector('.action-label');
+
+    // 버튼 비활성화 및 스타일 적용
+    walkButton.disabled = true;
+    walkButton.classList.add('cooldown');
+
+    // 현재 시간으로부터 30분 후
+    const now = new Date();
+    const walkEndTime = new Date(now.getTime() + 30 * 60000); // 30분
+
+    // 남은 시간 표시
+    const diffMinutes = 30;
+    actionLabel.innerHTML = `산책 중...<br><span class="cooldown-text">${diffMinutes}분 후 기상</span>`;
+
+    // 30분 후 자동 업데이트를 위한 타이머 설정
+    setTimeout(() => {
+        walkButton.disabled = false;
+        walkButton.classList.remove('cooldown');
+        actionLabel.textContent = '산책하기';
+
+        // 펫 상태 업데이트
+        if (currentUserId && currentPetId) {
+            fetchPetDetails(currentUserId, currentPetId);
         }
-        petListSection.prepend(welcomeMsg);
-    }
-}
+    }, 30 * 60000); // 30분
 
-/**
- * 타이머 시간 형식화
- * @param {number} milliseconds - 밀리초
- * @returns {string} - 형식화된 시간 문자열
- */
-function formatTimeRemaining(milliseconds) {
-    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
-    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
-
-    if (hours > 0) {
-        return `${hours}시간 ${minutes}분 후`;
-    } else if (minutes > 0) {
-        return `${minutes}분 ${seconds}초 후`;
-    } else {
-        return `${seconds}초 후`;
-    }
+    // 시간 업데이트를 위한 1분 간격 타이머
+    let remainingMinutes = 30;
+    const intervalId = setInterval(() => {
+        remainingMinutes--;
+        if (remainingMinutes <= 0) {
+            clearInterval(intervalId);
+            return;
+        }
+        actionLabel.innerHTML = `산책 중...<br><span class="cooldown-text">${remainingMinutes}분 후 기상</span>`;
+    }, 60000); // 1분마다
 }
