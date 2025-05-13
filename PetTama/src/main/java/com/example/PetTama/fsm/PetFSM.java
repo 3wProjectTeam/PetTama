@@ -210,10 +210,14 @@ public class PetFSM {
      * @return The updated pet
      */
     public static Pet play(Pet pet) {
-        if (checkIfSleeping(pet) || checkIfWalking(pet)) {
+        if (checkIfSleeping(pet)) {
+            log.info("Pet {} is sleeping, can't play now", pet.getName());
             return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
         }
-        // Update time-based stats first
+        if (checkIfWalking(pet)) {
+            log.info("Pet {} is walking, can't play now", pet.getName());
+            return pet; // 산책 중이면 액션 수행하지 않고 현재 상태 반환
+        }
         updatePetStatus(pet);
         
         // Apply play effects
@@ -270,57 +274,36 @@ public class PetFSM {
      */
     public static Pet sleep(Pet pet) {
         if (checkIfSleeping(pet) || checkIfWalking(pet)) {
-            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+            return pet;
         }
-        // Update time-based stats first
+
+        // 업데이트 상태 확인
         updatePetStatus(pet);
 
-        // 이미 수면 중인지 확인
-        if (pet.isSleeping()) {
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime endTime = pet.getSleepEndTime();
+        // 수면 상태 설정 (8시간)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime sleepEnd = now.plusHours(8);
 
-            // 수면 시간이 끝났는지 확인
-            if (now.isAfter(endTime)) {
-                // 수면 상태 해제
-                pet.setSleeping(false);
-                pet.setSleepStartTime(null);
-                pet.setSleepEndTime(null);
-                log.info("Pet {} woke up naturally", pet.getName());
-            } else {
-                // 아직 수면 중이면 상태 그대로 반환
-                log.info("Pet {} is still sleeping until {}", pet.getName(), endTime);
-                return pet;
-            }
-        }
+        log.info("Setting sleep state for pet: {} from {} to {}",
+                pet.getName(), now, sleepEnd);
 
-        // 새로운 수면 시작
-        // Apply sleep effects
+        pet.setSleeping(true);
+        pet.setSleepStartTime(now);
+        pet.setSleepEndTime(sleepEnd);
+
         int newTired = Math.max(0, pet.getTired() - 20);
         pet.setTired(newTired);
 
-        // Sleeping makes pet slightly hungrier and thirstier
         int newFullness = Math.max(0, pet.getFullness() - 5);
         pet.setFullness(newFullness);
 
         int newThirsty = Math.min(MAX_VALUE, pet.getThirsty() + 5);
         pet.setThirsty(newThirsty);
 
-        // Sleep reduces stress
         int newStress = Math.max(0, pet.getStress() - 8);
         pet.setStress(newStress);
 
-        // 수면 상태 설정 (8시간)
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime sleepEnd = now.plusHours(8);
-
-        pet.setSleeping(true);
-        pet.setSleepStartTime(now);
-        pet.setSleepEndTime(sleepEnd);
-
         log.info("Pet {} went to sleep until {}", pet.getName(), sleepEnd);
-
-        // Update last interaction time
         pet.setLastUpdated(now);
 
         return pet;
@@ -479,13 +462,12 @@ public class PetFSM {
             pet.setWalkStartTime(null);
             pet.setWalkEndTime(null);
             log.info("Pet {} finished walking during an action", pet.getName());
-            return false; // 산책 시간이 끝났으므로 액션 수행 가능
+            return false;
         }
-
-        // 산책 중이면 액션 수행 불가
         log.info("Pet {} 은 산책중~. Cannot perform action until {}", pet.getName(), endTime);
         return true;
     }
+
     /**
      * Gets a recommendation for the next action based on pet's current state
      * @param pet The pet to check

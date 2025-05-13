@@ -69,19 +69,25 @@ public class Pet {
 
     @Column(name = "walk_end_time")
     private LocalDateTime walkEndTime;
-    // sleeping 설정 메서드 추가 - null 체크 포함
+    
+    public void setSleeping(boolean sleeping) {
+        this.sleeping = sleeping;
+        if (!sleeping) {
+            // 수면 상태가 해제되면 시간 정보도 함께 초기화
+            this.sleepStartTime = null;
+            this.sleepEndTime = null;
+        }
+    }
+    
+    public void setWalking(boolean walking) {
+        this.walking = walking;
+        if (!walking) {
+            // 산책 상태가 해제되면 시간 정보도 함께 초기화
+            this.walkStartTime = null;
+            this.walkEndTime = null;
+        }
+    }
 
-    public void setSleeping(Boolean sleeping) {
-        // null이 전달되면 false로 설정
-        this.sleeping = (sleeping != null) ? sleeping : false;
-    }
-    public void setWalking(Boolean walking) {
-        this.walking = (walking != null) ? walking : false;
-    }
-    /**
-     * Converts this Pet entity to a DTO with additional state information
-     * @return Enhanced PetGetDto with current state and recommendations
-     */
     public PetGetDto toDto(Pet pet) {
         try {
             PetGetDto dto = new PetGetDto(
@@ -120,21 +126,24 @@ public class Pet {
             return dto;
         } catch (Exception e) {
             log.error("DTO 변환 중 오류: petId={}", pet.getId(), e);
-            PetGetDto fallbackDto = new PetGetDto();
-            fallbackDto.setId(pet.getId());
-            fallbackDto.setName(pet.getName());
-            fallbackDto.setPetType(pet.getPetType() != null ? pet.getPetType() : "CAT");
-            fallbackDto.setHp(pet.getHp());
-            fallbackDto.setFullness(pet.getFullness());
-            fallbackDto.setHappiness(pet.getHappiness());
-            fallbackDto.setTired(pet.getTired());
-            fallbackDto.setThirsty(pet.getThirsty());
-            fallbackDto.setStress(pet.getStress());
-            fallbackDto.setState(PetFSM.PetState.HAPPY);
-            fallbackDto.setRecommendation("펫을 돌봐주세요.");
-            fallbackDto.setSleeping(false);
-
-            return fallbackDto;
+            return getPetGetDto(pet);
         }
+    }
+
+    private static PetGetDto getPetGetDto(Pet pet) {
+        PetGetDto fallbackDto = new PetGetDto();
+        fallbackDto.setId(pet.getId());
+        fallbackDto.setName(pet.getName());
+        fallbackDto.setPetType(pet.getPetType() != null ? pet.getPetType() : "CAT");
+        fallbackDto.setHp(pet.getHp());
+        fallbackDto.setFullness(pet.getFullness());
+        fallbackDto.setHappiness(pet.getHappiness());
+        fallbackDto.setTired(pet.getTired());
+        fallbackDto.setThirsty(pet.getThirsty());
+        fallbackDto.setStress(pet.getStress());
+        fallbackDto.setState(PetFSM.PetState.HAPPY);
+        fallbackDto.setRecommendation("펫을 돌봐주세요.");
+        fallbackDto.setSleeping(false);
+        return fallbackDto;
     }
 }
