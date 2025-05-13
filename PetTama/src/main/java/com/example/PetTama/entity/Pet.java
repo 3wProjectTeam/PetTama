@@ -51,7 +51,6 @@ public class Pet {
     @Column(name = "last_fed_time")
     private LocalDateTime lastFedTime;
 
-    // boolean 대신 Boolean 래퍼 클래스 사용 또는 기본값 false 지정
     @Column(name = "is_sleeping", nullable = false)
     private boolean sleeping = false;
 
@@ -69,7 +68,25 @@ public class Pet {
 
     @Column(name = "walk_end_time")
     private LocalDateTime walkEndTime;
-    
+
+    @Column(name = "full_days_count")
+    private Integer fullDaysCount = 0;
+
+    @Column(name = "is_obese", nullable = false)
+    private boolean obese = false;
+
+    @Column(name = "high_stress_days_count")
+    private Integer highStressDaysCount = 0;
+
+    @Column(name = "is_depressed", nullable = false)
+    private boolean depressed = false;
+
+    @Column(name = "depression_days_count")
+    private Integer depressionDaysCount = 0;
+
+    @Column(name = "last_daily_check")
+    private LocalDateTime lastDailyCheck;
+
     public void setSleeping(boolean sleeping) {
         this.sleeping = sleeping;
         if (!sleeping) {

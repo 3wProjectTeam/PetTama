@@ -2,39 +2,31 @@ package com.example.PetTama.fsm;
 
 import com.example.PetTama.entity.Pet;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * A Finite State Machine implementation for PetTama pets
- * This handles state transitions and pet status updates over time
- */
 @Slf4j
 public class PetFSM {
-
-    // Define possible pet states
     public enum PetState {
-        HAPPY,      // Pet is in good condition
-        HUNGRY,     // Pet needs food
-        TIRED,      // Pet needs rest
-        BORED,      // Pet needs play
-        STRESSED,   // Pet is stressed
-        THIRSTY,    // Pet needs water
-        SICK,       // Pet is unwell
-        CRITICAL    // Pet is in critical condition
+        HAPPY,
+        HUNGRY,
+        TIRED,
+        BORED,
+        STRESSED,
+        THIRSTY,
+        SICK,
+        CRITICAL,
+        OBESE,
+        DEPRESSED
     }
 
-    // Constants for status thresholds
     private static final int LOW_THRESHOLD = 20;
     private static final int CRITICAL_THRESHOLD = 10;
     private static final int HIGH_THRESHOLD = 80;
     private static final int MAX_VALUE = 100;
-    
-    // 시간당 줄어드는 수치
+
     private static final int FULLNESS_DECAY_PER_HOUR = 5;
     private static final int HAPPINESS_DECAY_PER_HOUR = 3;
     private static final int THIRST_INCREASE_PER_HOUR = 4;
@@ -52,10 +44,10 @@ public class PetFSM {
     public static Pet updatePetStatus(Pet pet) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime lastUpdated = pet.getLastUpdated();
-        // 마지막 업데이트 이후 경과된 시간을 기준으로 Pet의 상태를 업데이트합니다.
         long hoursPassed = Duration.between(lastUpdated, now).toHours();
-        // 1시간 미만이면 update 하지 않음.
-        if (hoursPassed < 1) return pet;
+        if (hoursPassed < 1) {
+            return pet;
+        }
         log.info("Updating pet {} status after {} hours", pet.getName(), hoursPassed);
         // 스텟 감소 수치
         int newFullness = Math.max(0, pet.getFullness() - (int)(FULLNESS_DECAY_PER_HOUR * hoursPassed));
@@ -69,9 +61,22 @@ public class PetFSM {
         pet.setThirsty(newThirsty);
         pet.setStress(newStress);
         pet.setTired(newTired);
-        // Update Pet
+        // 우울증 효과 적용 (3일 이상 우울증일 때 HP 감소)
+        if (pet.isDepressed() && pet.getDepressionDaysCount() >= 3) {
+            // 1시간에 1씩 HP 감소
+            int newHp = Math.max(0, pet.getHp() - (int)hoursPassed);
+            pet.setHp(newHp);
+        }
+        if (pet.isObese()) {
+            // 비만일 때 추가 효과 적용
+            int additionalTired = (int)(hoursPassed); // 예: 시간당 추가 피로 1
+            pet.setTired(Math.min(MAX_VALUE, pet.getTired() + additionalTired));
+
+            // 행복도 추가 감소
+            int additionalHappinessLoss = (int)(hoursPassed); // 예: 시간당 추가 행복 감소 1
+            pet.setHappiness(Math.max(0, pet.getHappiness() - additionalHappinessLoss));
+        }
         updateHP(pet);
-        // set LastUpdate
         pet.setLastUpdated(now);
         return pet;
     }
@@ -82,17 +87,19 @@ public class PetFSM {
      * @return 현재 Pet stat
      */
     public static PetState getCurrentState(Pet pet) {
-        // 모든 pet stat을 List로 받아옴
+
         List<PetState> states = getPetStates(pet);
-        // Prioritize the most critical states
+
         if (states.contains(PetState.CRITICAL)) return PetState.CRITICAL;
         if (states.contains(PetState.SICK)) return PetState.SICK;
+        if (states.contains(PetState.DEPRESSED)) return PetState.DEPRESSED;
         if (states.contains(PetState.HUNGRY)) return PetState.HUNGRY;
         if (states.contains(PetState.THIRSTY)) return PetState.THIRSTY;
         if (states.contains(PetState.TIRED)) return PetState.TIRED;
         if (states.contains(PetState.STRESSED)) return PetState.STRESSED;
         if (states.contains(PetState.BORED)) return PetState.BORED;
-        // Default state if no other conditions are met
+        if (states.contains(PetState.OBESE)) return PetState.OBESE;
+
         return PetState.HAPPY;
     }
     
@@ -103,13 +110,11 @@ public class PetFSM {
      */
     private static List<PetState> getPetStates(Pet pet) {
         PetState[] states = new PetState[]{};
-        
-        // Check for critical condition first
+
         if (pet.getHp() <= CRITICAL_THRESHOLD) {
-            return Arrays.asList(PetState.CRITICAL);
+            return List.of(PetState.CRITICAL);
         }
-        
-        // Check for each condition and add to states
+
         if (pet.getFullness() <= LOW_THRESHOLD) {
             states = addState(states, PetState.HUNGRY);
         }
@@ -129,18 +134,21 @@ public class PetFSM {
         if (pet.getHappiness() <= LOW_THRESHOLD) {
             states = addState(states, PetState.BORED);
         }
-        
-        // Check for sickness (combination of factors)
+
         if ((pet.getStress() > HIGH_THRESHOLD && pet.getFullness() < LOW_THRESHOLD) ||
             (pet.getTired() > HIGH_THRESHOLD && pet.getThirsty() > HIGH_THRESHOLD)) {
             states = addState(states, PetState.SICK);
         }
-        
-        // Return happy if no other states
+
         if (states.length == 0) {
-            return Arrays.asList(PetState.HAPPY);
+            return List.of(PetState.HAPPY);
         }
-        
+        if (pet.isObese()) {
+            states = addState(states, PetState.OBESE);
+        }
+        if (pet.isDepressed()) {
+            states = addState(states, PetState.DEPRESSED);
+        }
         return Arrays.asList(states);
     }
     
@@ -160,20 +168,17 @@ public class PetFSM {
      */
     private static void updateHP(Pet pet) {
         int hpChange = 0;
-        
-        // Critical conditions decrease HP
+
         if (pet.getFullness() <= CRITICAL_THRESHOLD) hpChange -= HP_LOSS_CRITICAL;
         if (pet.getThirsty() >= MAX_VALUE - CRITICAL_THRESHOLD) hpChange -= HP_LOSS_CRITICAL;
         if (pet.getStress() >= MAX_VALUE - CRITICAL_THRESHOLD) hpChange -= HP_LOSS_CRITICAL;
-        
-        // Optimal conditions increase HP slightly
+
         if (pet.getFullness() >= HIGH_THRESHOLD) hpChange += HP_GAIN_OPTIMAL;
         if (pet.getHappiness() >= HIGH_THRESHOLD) hpChange += HP_GAIN_OPTIMAL;
         if (pet.getThirsty() <= LOW_THRESHOLD) hpChange += HP_GAIN_OPTIMAL;
         if (pet.getStress() <= LOW_THRESHOLD) hpChange += HP_GAIN_OPTIMAL;
         if (pet.getTired() <= LOW_THRESHOLD) hpChange += HP_GAIN_OPTIMAL;
-        
-        // Apply HP change with limits
+
         int newHp = pet.getHp() + hpChange;
         pet.setHp(Math.max(0, Math.min(MAX_VALUE, newHp)));
     }
@@ -185,20 +190,13 @@ public class PetFSM {
      */
     public static Pet feed(Pet pet) {
         if (checkIfSleeping(pet) || checkIfWalking(pet)) {
-            return pet; // 수면 중이면 액션 수행하지 않고 현재 상태 반환
+            return pet;
         }
-        // Update time-based stats first
         updatePetStatus(pet);
-
-        // Apply feeding effects
         int newFullness = Math.min(MAX_VALUE, pet.getFullness() + 20);
         pet.setFullness(newFullness);
-
-        // Decrease thirst slightly
         int newThirsty = Math.max(0, pet.getThirsty() - 5);
         pet.setThirsty(newThirsty);
-
-        // Update last interaction time
         pet.setLastUpdated(LocalDateTime.now());
 
         return pet;
@@ -469,6 +467,55 @@ public class PetFSM {
     }
 
     /**
+     * 일일 상태 체크 - 비만과 우울증 상태를 확인하고 업데이트
+     * @param pet 확인할 펫
+     * @return 업데이트된 펫
+     */
+    public static Pet checkDailyStatus(Pet pet) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lastCheck = pet.getLastDailyCheck();
+
+        if (lastCheck == null || Duration.between(lastCheck, now).toHours() >= 24) {
+            if (pet.getFullness() >= 100) {
+                pet.setFullDaysCount(pet.getFullDaysCount() + 1);
+                if (pet.getFullDaysCount() >= 5) {
+                    pet.setObese(true);
+                }
+            } else {
+                pet.setFullDaysCount(0);
+                if (pet.isObese()) {
+                    if (pet.getFullness() <= 80) {
+                        pet.setObese(false);
+                    }
+                }
+            }
+
+            if (pet.getStress() >= 80) {
+                pet.setHighStressDaysCount(pet.getHighStressDaysCount() + 1);
+                if (pet.getHighStressDaysCount() >= 3) {
+                    pet.setDepressed(true);
+                    if (pet.getDepressionDaysCount() == 0) {
+                        pet.setDepressionDaysCount(1);
+                    }
+                }
+            } else {
+                pet.setHighStressDaysCount(0);
+                if (pet.isDepressed() && pet.getStress() <= 50) {
+                    pet.setDepressed(false);
+                    pet.setDepressionDaysCount(0);
+                }
+            }
+
+            if (pet.isDepressed()) {
+                pet.setDepressionDaysCount(pet.getDepressionDaysCount() + 1);
+            }
+
+            pet.setLastDailyCheck(now);
+        }
+
+        return pet;
+    }
+    /**
      * Gets a recommendation for the next action based on pet's current state
      * @param pet The pet to check
      * @return String recommendation
@@ -493,6 +540,10 @@ public class PetFSM {
                 return "경고! 당신의 펫이 위험한 상태입니다! 즉시 관리가 필요합니다!";
             case HAPPY:
                 return "당신의 펫이 행복하고 건강합니다!";
+            case OBESE:
+                return "당신의 펫이 비만입니다! 운동(산책)을 시키고 먹이를 줄여주세요.";
+            case DEPRESSED:
+                return "당신의 펫이 우울증 상태입니다! 스트레스를 낮추고 더 많은 관심을 주세요.";
             default:
                 return "정기적으로 펫을 확인해주세요.";
         }

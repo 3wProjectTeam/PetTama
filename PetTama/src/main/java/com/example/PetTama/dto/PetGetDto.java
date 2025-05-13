@@ -25,6 +25,11 @@ public class PetGetDto {
     private LocalDateTime sleepEndTime;
     private boolean walking;
     private LocalDateTime walkEndTime;
+    private boolean obese;
+    private boolean depressed;
+    private int fullDaysCount;
+    private int highStressDaysCount;
+    private int depressionDaysCount;
 
     public void setSleeping(Boolean sleeping) {
         this.sleeping = (sleeping != null) ? sleeping : false;

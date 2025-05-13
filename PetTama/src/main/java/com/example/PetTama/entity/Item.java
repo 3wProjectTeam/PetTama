@@ -26,13 +26,12 @@ public class Item {
     private double price;
 
     @Column(nullable = false)
-    private String itemType; // FOOD, TOY, ACCESSORY, etc.
+    private String itemType;
 
-    // Effect on pet stats (0-100)
     private int happinessEffect;
     private int fullnessEffect;
-    private int hydrationEffect; // for thirsty reduction
-    private int energyEffect;    // for tired reduction
+    private int hydrationEffect;
+    private int energyEffect;
     private int stressReduction;
 
     // Calculates the effect multiplier based on price
