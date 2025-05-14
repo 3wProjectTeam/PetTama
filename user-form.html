@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <a href="/home" style="text-decoration: none; color: inherit;">
+    <h1>PetTama - 사용자 등록/수정</h1>
+  </a>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .form-container {
+      background-color: var(--background-light);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color var(--transition-fast);
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+
+    .secondary-btn {
+      background-color: var(--background-gray);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .secondary-btn:hover {
+      background-color: var(--border-color);
+    }
+
+    .navigation-link {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .navigation-button {
+      display: inline-block;
+      margin-right: 0.5rem;
+      padding: 0.5rem 1rem;
+      color: var(--text-primary);
+      background-color: var(--background-gray);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: background-color var(--transition-fast);
+    }
+
+    .navigation-button:hover {
+      background-color: var(--border-color);
+    }
+
+    .status-message {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      display: none;
+    }
+
+    .status-message.success {
+      background-color: var(--success-color);
+      color: white;
+      display: block;
+    }
+
+    .status-message.error {
+      background-color: var(--danger-color);
+      color: white;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>PetTama</h1>
+    <p class="subtitle">반려동물 커뮤니티</p>
+    <div class="navigation">
+      <a href="/home" class="navigation-button">홈으로</a>
+      <a href="/board" class="navigation-button">게시판</a>
+    </div>
+  </header>
+
+  <div class="form-container">
+    <div class="form-header">
+      <h2 id="formTitle">사용자 등록</h2>
+    </div>
+
+    <form id="userForm">
+      <div class="input-group">
+        <label for="nickname">닉네임</label>
+        <input type="text" id="nickname" name="nickname" placeholder="닉네임을 입력하세요" required>
+      </div>
+
+      <div class="input-group">
+        <label for="email">이메일</label>
+        <input type="email" id="email" name="email" placeholder="이메일을 입력하세요" required>
+      </div>
+
+      <div class="input-group">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
+      </div>
+
+      <div class="input-group">
+        <label for="monthlyIncome">월 수입 (원)</label>
+        <input type="number" id="monthlyIncome" name="monthlyIncome" placeholder="월 수입을 입력하세요" min="0" step="10000" required>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" id="cancelButton" class="secondary-btn">취소</button>
+        <button type="submit" id="submitButton" class="primary-btn">저장</button>
+      </div>
+    </form>
+
+    <p id="statusMessage" class="status-message"></p>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // DOM 요소
+    const formTitle = document.getElementById('formTitle');
+    const userForm = document.getElementById('userForm');
+    const nicknameInput = document.getElementById('nickname');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const monthlyIncomeInput = document.getElementById('monthlyIncome');
+    const cancelButton = document.getElementById('cancelButton');
+    const submitButton = document.getElementById('submitButton');
+    const statusMessage = document.getElementById('statusMessage');
+
+    // 상태 변수
+    let isEditMode = false;
+    let userId = null;
+
+    // URL에서 사용자 ID 추출 (수정 모드인 경우)
+    function getUserIdFromUrl() {
+      const pathParts = window.location.pathname.split('/');
+
+      // URL이 /users/{id}/edit 패턴인 경우 수정 모드
+      if (pathParts.length >= 3 && pathParts[pathParts.length - 1] === 'edit') {
+        return pathParts[pathParts.length - 2];
+      }
+
+      return null;
+    }
+
+    // 상태 메시지 표시
+    function showStatusMessage(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = 'status-message';
+
+      if (type) {
+        statusMessage.classList.add(type);
+      }
+
+      // 성공 메시지의 경우 자동으로 사라지도록 함
+      if (type === 'success') {
+        setTimeout(function() {
+          statusMessage.textContent = '';
+          statusMessage.className = 'status-message';
+        }, 3000);
+      }
+    }
+
+    // 초기화 함수
+    function initialize() {
+      // URL을 확인해 모드(생성/수정) 결정
+      userId = getUserIdFromUrl();
+      isEditMode = !!userId;
+
+      if (isEditMode) {
+        // 수정 모드일 경우 기존 사용자 데이터 불러오기
+        formTitle.textContent = '사용자 정보 수정';
+        // 수정 모드에서는 비밀번호 필드가 필수가 아님
+        passwordInput.required = false;
+        passwordInput.placeholder = '변경하려면 입력하세요';
+        loadUserData(userId);
+      } else {
+        // 생성 모드일 경우 빈 폼 표시
+        formTitle.textContent = '사용자 등록';
+      }
+    }
+
+    // 사용자 데이터 불러오기 (수정 모드)
+    async function loadUserData(userId) {
+      try {
+        const response = await fetch(`/api/users/${userId}`);
+        if (!response.ok) {
+          throw new Error('사용자 정보를 불러오는데 실패했습니다.');
+        }
+
+        const user = await response.json();
+
+        // 폼에 값 채우기
+        nicknameInput.value = user.nickname;
+        emailInput.value = user.email;
+        // 비밀번호는 보안상의 이유로 표시하지 않음
+        if (user.monthlyIncome) {
+          monthlyIncomeInput.value = user.monthlyIncome;
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        showStatusMessage('사용자 정보를 불러오는데 실패했습니다: ' + error.message, 'error');
+      }
+    }
+
+    // 사용자 생성
+    async function createUser(userData) {
+      try {
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(userData)
+        });
+
+        if (!response.ok) {
+          throw new Error('사용자 등록에 실패했습니다.');
+        }
+
+        const createdUser = await response.json();
+        showStatusMessage('사용자 등록이 성공적으로 완료되었습니다.', 'success');
+
+        // 잠시 후 홈 페이지로 이동
+        setTimeout(function() {
+          window.location.href = '/home';
+        }, 1000);
+      } catch (error) {
+        console.error('Error creating user:', error);
+        showStatusMessage('사용자 등록 오류: ' + error.message, 'error');
+      }
+    }
+
+    // 사용자 정보 수정
+    async function updateUser(userId, userData) {
+      try {
+        const response = await fetch(`/api/users/${userId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(userData)
+        });
+
+        if (!response.ok) {
+          throw new Error('사용자 정보 수정에 실패했습니다.');
+        }
+
+        const updatedUser = await response.json();
+        showStatusMessage('사용자 정보가 성공적으로 수정되었습니다.', 'success');
+
+        // 잠시 후 사용자 프로필 페이지로 이동
+        setTimeout(function() {
+          window.location.href = `/users/${updatedUser.id}`;
+        }, 1000);
+      } catch (error) {
+        console.error('Error updating user:', error);
+        showStatusMessage('사용자 정보 수정 오류: ' + error.message, 'error');
+      }
+    }
+
+    // 폼 제출 처리
+    userForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // 입력값 가져오기
+      const nickname = nicknameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      const monthlyIncome = parseInt(monthlyIncomeInput.value, 10);
+
+      // 입력값 검증
+      if (!nickname) {
+        showStatusMessage('닉네임을 입력해주세요.', 'error');
+        nicknameInput.focus();
+        return;
+      }
+
+      if (!email) {
+        showStatusMessage('이메일을 입력해주세요.', 'error');
+        emailInput.focus();
+        return;
+      }
+
+      if (!isEditMode && !password) {
+        showStatusMessage('비밀번호를 입력해주세요.', 'error');
+        passwordInput.focus();
+        return;
+      }
+
+      if (isNaN(monthlyIncome) || monthlyIncome < 0) {
+        showStatusMessage('유효한 월 수입을 입력해주세요.', 'error');
+        monthlyIncomeInput.focus();
+        return;
+      }
+
+      // 사용자 데이터 생성
+      const userData = {
+        nickname,
+        email,
+        monthlyIncome
+      };
+
+      // 비밀번호가 입력된 경우에만 포함 (수정 모드에서는 선택적)
+      if (password) {
+        userData.password = password;
+      }
+
+      // 수정 모드인 경우 사용자 ID 포함
+      if (isEditMode) {
+        userData.id = userId;
+      }
+
+      // API 호출
+      if (isEditMode) {
+        updateUser(userId, userData);
+      } else {
+        createUser(userData);
+      }
+    });
+
+    // 취소 버튼 클릭 처리
+    cancelButton.addEventListener('click', function() {
+      // 수정 모드인 경우 프로필 페이지로, 생성 모드인 경우 홈 페이지로 이동
+      if (isEditMode) {
+        window.location.href = `/users/${userId}`;
+      } else {
+        window.location.href = '/home';
+      }
+    });
+
+    // 초기화
+    initialize();
+  });
+</script>
+</body>
+</html>
