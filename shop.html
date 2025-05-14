@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetTama - 애완용품 상점</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+    /* === form 페이지와 동일한 네비/인증 버튼 스타일 === */
+    .navigation-button,
+    .primary-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    padding: 0.5rem 1.2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    border: none;
+    cursor: pointer;
+    justify-content: center;
+    font-size: 1rem;
+    pointer-events: auto;
+    }
+    .navigation-button:hover,
+    .primary-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+    }
+
+    /* === form 페이지와 동일한 네비게이션 / 인증 레이아웃 === */
+    .navigation,
+    #authButtons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0.5rem 0;
+    justify-content: center;
+    }
+    /* ==================================================== */
+
+    .shop-container {
+    background-color: var(--background-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    }
+
+    .shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab-container {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab-button {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+    }
+
+    .tab-button.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    }
+
+    .tab-button:hover:not(.active) {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+    }
+
+    .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+    }
+
+    .item-card {
+    background-color: var(--background-gray);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .item-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+    }
+
+    .item-image {
+    height: 120px;
+    background-color: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    }
+
+    .item-details {
+    padding: 1rem;
+    }
+
+    .item-name {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    }
+
+    .item-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    height: 2.5rem;
+    overflow: hidden;
+    }
+
+    .item-price {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    }
+
+    .item-effects {
+    font-size: 0.75rem;
+    margin-bottom: 1rem;
+    }
+
+    .effect-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+    }
+
+    .buy-button {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    }
+
+    .buy-button:hover {
+    background-color: var(--primary-dark);
+    }
+
+    .empty-message {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+    }
+
+    .status-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    display: none;
+    }
+
+    .status-message.success {
+    background-color: var(--success-color);
+    color: white;
+    display: block;
+    }
+
+    .status-message.error {
+    background-color: var(--danger-color);
+    color: white;
+    display: block;
+    }
+
+    .login-required-message {
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--primary-light);
+    border-radius: var(--radius-md);
+    }
+
+    .login-required-message a {
+    color: var(--primary-color);
+    font-weight: 700;
+    text-decoration: none;
+    }
+
+    .user-greeting {
+    font-weight: 600;
+    margin-right: 1rem;
+    }
+
+    .inventory-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    }
+
+    .inventory-button {
+    display: flex;
+    align-items: center;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    }
+
+    .inventory-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    }
+
+    .inventory-icon {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+    }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <a href="/home" style="text-decoration: none; color: inherit;">
+            <h1>PetTama</h1>
+        </a>
+        <p class="subtitle">애완용품 상점</p>
+        <div class="navigation">
+            <a href="/home" class="navigation-button">홈으로</a>
+            <a href="/board" class="navigation-button">게시판</a>
+            <a href="/shop" class="navigation-button">상점</a>
+        </div>
+        <div id="authButtons">
+            <a href="/auth/login" class="navigation-button">로그인</a>
+            <a href="/auth/register" class="navigation-button">회원가입</a>
+        </div>
+    </header>
+
+    <div class="shop-container">
+        <div class="shop-header">
+            <h2>상점</h2>
+            <div id="userInfo" class="user-info">
+                <!-- 사용자 정보가 여기에 표시됩니다 -->
+            </div>
+        </div>
+
+        <div id="shopContent">
+            <div class="tab-container" id="itemTypeTabs">
+                <button class="tab-button active" data-type="all">전체</button>
+                <button class="tab-button" data-type="FOOD">사료</button>
+                <button class="tab-button" data-type="DRINK">물/음료</button>
+                <button class="tab-button" data-type="TOY">장난감</button>
+                <button class="tab-button" data-type="GROOMING">그루밍</button>
+                <button class="tab-button" data-type="MEDICINE">약/건강</button>
+                <button class="tab-button" data-type="ACCESSORY">액세서리</button>
+            </div>
+
+            <div id="itemsGrid" class="item-grid">
+                <!-- 아이템들이 여기에 동적으로 로드됩니다 -->
+                <div class="loading">상품을 불러오는 중...</div>
+            </div>
+
+            <p id="shopStatusMessage" class="status-message"></p>
+
+            <!-- 인벤토리 섹션 대신 인벤토리 페이지로 이동하는 버튼 -->
+            <div class="inventory-button-container">
+                <a href="/inventory.html" class="inventory-button">
+                    <span class="inventory-icon">🎒</span>
+                    내 인벤토리 확인하기
+                </a>
+            </div>
+        </div>
+
+        <div id="loginRequired" class="login-required-message" style="display: none;">
+            <h3>로그인이 필요합니다</h3>
+            <p>상점을 이용하려면 로그인이 필요합니다.</p>
+            <a href="/auth/login" class="primary-btn">로그인하기</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // DOM 요소
+        const userInfo = document.getElementById('userInfo');
+        const itemTypeTabs = document.getElementById('itemTypeTabs');
+        const itemsGrid = document.getElementById('itemsGrid');
+        const shopStatusMessage = document.getElementById('shopStatusMessage');
+        const shopContent = document.getElementById('shopContent');
+        const loginRequired = document.getElementById('loginRequired');
+        const authButtons = document.getElementById('authButtons');
+
+        // 상태 변수
+        let currentUserId = null;
+        let currentItemType = 'all';
+        let allItems = [];
+        let isLoggedIn = false;
+        let currentUser = null;
+
+        // 아이템 타입별 아이콘
+        const itemTypeIcons = {
+            'FOOD': '🍗',
+            'DRINK': '💧',
+            'TOY': '🎮',
+            'GROOMING': '🧹',
+            'MEDICINE': '💊',
+            'ACCESSORY': '🧣',
+            'default': '📦'
+        };
+
+        // 상태 효과 이름
+        const effectNames = {
+            'happinessEffect': '행복도',
+            'fullnessEffect': '포만감',
+            'hydrationEffect': '수분 개선',
+            'energyEffect': '에너지 회복',
+            'stressReduction': '스트레스 감소'
+        };
+
+        // 페이지 로드 시 로그인 상태 확인
+        checkAuthStatus();
+
+        // 로그인 상태 확인
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/user');
+
+                if (response.ok) {
+                    // 로그인된 상태
+                    currentUser = await response.json();
+                    currentUserId = currentUser.id;
+                    isLoggedIn = true;
+
+                    // 사용자 정보 표시
+                    userInfo.innerHTML = `<span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>`;
+
+                    // 인증 버튼 업데이트
+                    authButtons.innerHTML = `
+                        <span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>
+                        <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
+                            <button type="submit" class="navigation-button">로그아웃</button>
+                        </form>
+                    `;
+
+                    // 상점 컨텐츠 표시 및 데이터 로드
+                    shopContent.style.display = 'block';
+                    loginRequired.style.display = 'none';
+
+                    // 상품 및 사용자 데이터 로드
+                    loadAllItems();
+                } else {
+                    // 로그인되지 않은 상태
+                    isLoggedIn = false;
+
+                    // 인증 버튼 업데이트
+                    authButtons.innerHTML = `
+                        <a href="/auth/login" class="navigation-button">로그인</a>
+                        <a href="/auth/register" class="navigation-button">회원가입</a>
+                    `;
+
+                    // 상품은 로드하되 구매/사용 기능 제한
+                    loadAllItems();
+
+                    // 로그인 필요 메시지 표시
+                    shopContent.style.display = 'block';
+                    loginRequired.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+
+                // 오류 발생 시 기본적으로 상품만 표시
+                loadAllItems();
+            }
+        }
+
+        // 모든 상품 로드
+        async function loadAllItems() {
+            // 로딩 메시지 표시
+            itemsGrid.innerHTML = '<div class="empty-message">상품을 불러오는 중...</div>';
+
+            try {
+                const itemsResponse = await fetch('/api/items');
+                if (!itemsResponse.ok) {
+                    throw new Error('상품을 불러오는데 실패했습니다.');
+                }
+
+                allItems = await itemsResponse.json();
+                displayItems(allItems);
+
+            } catch (error) {
+                console.error('Error loading items:', error);
+                itemsGrid.innerHTML = '<div class="empty-message">상품을 불러오는데 실패했습니다.</div>';
+            }
+        }
+
+        // 아이템 표시
+        function displayItems(items) {
+            if (items.length === 0) {
+                itemsGrid.innerHTML = '<div class="empty-message">상품이 없습니다.</div>';
+                return;
+            }
+
+            // 현재 탭에 맞는 아이템만 필터링
+            let filteredItems = items;
+            if (currentItemType !== 'all') {
+                filteredItems = items.filter(item => item.itemType === currentItemType);
+
+                if (filteredItems.length === 0) {
+                    itemsGrid.innerHTML = '<div class="empty-message">이 카테고리에 상품이 없습니다.</div>';
+                    return;
+                }
+            }
+
+            const itemsHtml = filteredItems.map(item => {
+                // 효과가 있는 속성만 추출
+                const effects = [];
+                Object.keys(effectNames).forEach(key => {
+                    if (item[key] > 0) {
+                        effects.push({ name: effectNames[key], value: item[key] });
+                    }
+                });
+
+                // 아이템 카드 HTML 생성
+                return `
+        <div class="item-card" data-item-id="${item.id}">
+          <div class="item-image">
+            ${itemTypeIcons[item.itemType] || itemTypeIcons.default}
+          </div>
+          <div class="item-details">
+            <div class="item-name">${item.name}</div>
+            <div class="item-description">${item.description}</div>
+            <div class="item-price">${item.price.toLocaleString()}원</div>
+            <div class="item-effects">
+              ${effects.map(effect => `
+                <div class="effect-item">
+                  <span>${effect.name}</span>
+                  <span>+${effect.value}</span>
+                </div>
+              `).join('')}
+            </div>
+            <button class="buy-button" data-item-id="${item.id}" ${!isLoggedIn ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                ${isLoggedIn ? '구매하기' : '로그인 필요'}
+            </button>
+          </div>
+        </div>
+      `;
+            }).join('');
+
+            itemsGrid.innerHTML = itemsHtml;
+
+            // 구매 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.buy-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!isLoggedIn) {
+                        showStatusMessage(shopStatusMessage, '구매하려면 로그인이 필요합니다.', 'error');
+                        return;
+                    }
+
+                    const itemId = parseInt(this.dataset.itemId, 10);
+                    purchaseItem(currentUserId, itemId);
+                });
+            });
+        }
+
+        // 아이템 구매
+        async function purchaseItem(userId, itemId) {
+            try {
+                const response = await fetch(`/api/items/purchase/${userId}/${itemId}?quantity=1`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('아이템 구매에 실패했습니다.');
+                }
+
+                await response.json();
+                showStatusMessage(shopStatusMessage, '아이템을 구매했습니다!', 'success');
+            } catch (error) {
+                console.error('Error purchasing item:', error);
+                showStatusMessage(shopStatusMessage, error.message, 'error');
+            }
+        }
+
+        // 상태 메시지 표시
+        function showStatusMessage(element, message, type) {
+            element.textContent = message;
+            element.className = 'status-message';
+
+            if (type) {
+                element.classList.add(type);
+            }
+
+            // 3초 후 메시지 숨기기
+            setTimeout(() => {
+                element.textContent = '';
+                element.className = 'status-message';
+            }, 3000);
+        }
+
+        // 탭 클릭 이벤트 리스너
+        itemTypeTabs.addEventListener('click', event => {
+            if (event.target.classList.contains('tab-button')) {
+                // 모든 탭에서 active 클래스 제거
+                document.querySelectorAll('.tab-button').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+
+                // 클릭된 탭에 active 클래스 추가
+                event.target.classList.add('active');
+
+                // 아이템 타입 필터링
+                currentItemType = event.target.dataset.type;
+                displayItems(allItems);
+            }
+        });
+    });
+</script>
+</body>
+</html>
