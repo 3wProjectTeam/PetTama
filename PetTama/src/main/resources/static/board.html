@@ -7,12 +7,50 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <style>
+    /* === form 페이지와 동일한 네비/인증 버튼 스타일 === */
+    .navigation-button,
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--primary-light);
+      color: var(--primary-color);
+      padding: 0.5rem 1.2rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      border: none;
+      cursor: pointer;
+      justify-content: center;
+      font-size: 1rem;
+      pointer-events: auto;
+    }
+    .navigation-button:hover,
+    .primary-btn:hover {
+      background-color: var(--primary-color);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    /* === form 페이지와 동일한 네비게이션/인증 레이아웃 === */
+    .navigation,
+    #authButtons {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin: 0.5rem 0;
+      justify-content: center;
+    }
+    /* ==================================================== */
+
+    /* 게시판 컨테이너 */
     .board-container {
       background-color: var(--background-light);
       border-radius: var(--radius-md);
       box-shadow: var(--shadow-sm);
       padding: 1.5rem;
       margin-bottom: 2rem;
+      width: 100%;
     }
 
     .board-header {
@@ -62,6 +100,7 @@
       background-color: var(--background-light);
       cursor: pointer;
       transition: all var(--transition-fast);
+      font-size: 0.875rem;
     }
 
     .pagination-button:hover {
@@ -73,26 +112,6 @@
       background-color: var(--primary-color);
       color: white;
       border-color: var(--primary-color);
-    }
-
-    .navigation-link {
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .navigation-button {
-      display: inline-block;
-      margin-right: 0.5rem;
-      padding: 0.5rem 1rem;
-      color: var(--text-primary);
-      background-color: var(--background-gray);
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      transition: background-color var(--transition-fast);
-    }
-
-    .navigation-button:hover {
-      background-color: var(--border-color);
     }
 
     .post-list-empty {
@@ -109,22 +128,23 @@
       margin-top: 1rem;
     }
 
-    .login-required-message a {
-      color: var(--primary-color);
-      font-weight: 700;
-      text-decoration: none;
+    .login-required-message a.primary-btn,
+    .login-required-message button.primary-btn {
+      pointer-events: auto;
     }
 
     .user-greeting {
       font-weight: 600;
-      margin-right: 1rem;
+      font-size: 0.8rem;
     }
   </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>PetTama</h1>
+    <a href="/home" style="text-decoration: none; color: inherit;">
+      <h1>PetTama</h1>
+    </a>
     <p class="subtitle">반려동물 커뮤니티</p>
     <div class="navigation">
       <a href="/home" class="navigation-button">홈으로</a>
@@ -150,7 +170,7 @@
     <div id="loginRequired" class="login-required-message" style="display: none;">
       <h3>로그인이 필요합니다</h3>
       <p>게시글을 작성하려면 로그인이 필요합니다.</p>
-      <a href="/auth/login" class="primary-btn">로그인하기</a>
+      <button onclick="location.href='/auth/login'" class="primary-btn">로그인하기</button>
     </div>
   </div>
 </div>
@@ -169,211 +189,98 @@
     let isLoggedIn = false;
     let currentUser = null;
 
-    // 로그인 상태 확인
-    checkAuthStatus();
-
-    // 게시글 목록 불러오기
-    async function loadPosts() {
-      try {
-        const response = await fetch('/api/posts');
-        if (!response.ok) {
-          throw new Error('게시글을 불러오는데 실패했습니다.');
-        }
-
-        allPosts = await response.json();
-        renderPosts();
-      } catch (error) {
-        console.error('Error loading posts:', error);
-        postList.innerHTML = `<div class="post-list-empty">게시글을 불러오는데 실패했습니다: ${error.message}</div>`;
-      }
-    }
-
-    // 로그인 상태 확인
     async function checkAuthStatus() {
       try {
         const response = await fetch('/api/auth/user');
-
         if (response.ok) {
-          // 로그인된 상태
           currentUser = await response.json();
           isLoggedIn = true;
-
-          // 인증 버튼 업데이트
           authButtons.innerHTML = `
             <span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>
             <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
               <button type="submit" class="navigation-button">로그아웃</button>
-            </form>
-          `;
-
-          // 로그인 필요 메시지 숨기기
+            </form>`;
           loginRequired.style.display = 'none';
         } else {
-          // 로그인되지 않은 상태
           isLoggedIn = false;
-
-          // 인증 버튼 업데이트
           authButtons.innerHTML = `
             <a href="/auth/login" class="navigation-button">로그인</a>
-            <a href="/auth/register" class="navigation-button">회원가입</a>
-          `;
+            <a href="/auth/register" class="navigation-button">회원가입</a>`;
         }
-
-        // 게시글 목록 불러오기
         loadPosts();
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-        isLoggedIn = false;
-
-        // 게시글 목록 불러오기
+      } catch (err) {
+        console.error(err);
         loadPosts();
       }
     }
 
-    // 게시글 렌더링
+    async function loadPosts() {
+      try {
+        const res = await fetch('/api/posts');
+        if (!res.ok) throw new Error('게시글을 불러오는데 실패했습니다.');
+        allPosts = await res.json();
+        renderPosts();
+      } catch (err) {
+        console.error(err);
+        postList.innerHTML = `<div class="post-list-empty">${err.message}</div>`;
+      }
+    }
+
     function renderPosts() {
-      if (allPosts.length === 0) {
-        postList.innerHTML = '<div class="post-list-empty">게시글이 없습니다. 새 글을 작성해보세요!</div>';
+      if (!allPosts.length) {
+        postList.innerHTML = '<div class="post-list-empty">게시글이 없습니다.</div>';
         pagination.innerHTML = '';
         return;
       }
-
-      // 현재 페이지에 표시할 게시글 계산
-      const startIndex = (currentPage - 1) * postsPerPage;
-      const endIndex = Math.min(startIndex + postsPerPage, allPosts.length);
-      const currentPosts = allPosts.slice(startIndex, endIndex);
-
-      // 게시글 목록 렌더링
-      const postsHtml = currentPosts.map(post => `
-            <div class="post-item" data-post-id="${post.id}">
-                <div class="post-title">${post.title}</div>
-                <div class="post-meta">
-                    <span>${post.nickname}</span>
-                    <span>${formatDate(post.createdAt)}</span>
-                </div>
-            </div>
-        `).join('');
-
-      postList.innerHTML = postsHtml;
-
-      // 게시글 클릭 이벤트 등록
+      const start = (currentPage - 1) * postsPerPage;
+      postList.innerHTML = allPosts.slice(start, start + postsPerPage).map(p => `
+        <div class="post-item" data-post-id="${p.id}">
+          <div class="post-title">${p.title}</div>
+          <div class="post-meta"><span>${p.nickname}</span><span>${formatDate(p.createdAt)}</span></div>
+        </div>
+      `).join('');
       document.querySelectorAll('.post-item').forEach(item => {
-        item.addEventListener('click', function() {
-          const postId = this.dataset.postId;
-          window.location.href = `/board/${postId}`;
-        });
+        item.onclick = () => location.href = `/board/${item.dataset.postId}`;
       });
-
-      // 페이지네이션 렌더링
       renderPagination();
     }
 
-    // 페이지네이션 렌더링
     function renderPagination() {
-      const totalPages = Math.ceil(allPosts.length / postsPerPage);
-
-      if (totalPages <= 1) {
-        pagination.innerHTML = '';
-        return;
-      }
-
-      let paginationHtml = '';
-
-      // 이전 페이지 버튼
-      if (currentPage > 1) {
-        paginationHtml += `<button class="pagination-button" data-page="${currentPage - 1}">이전</button>`;
-      }
-
-      // 페이지 번호 버튼
-      for (let i = 1; i <= totalPages; i++) {
-        if (
-                i === 1 || // 첫 페이지
-                i === totalPages || // 마지막 페이지
-                (i >= currentPage - 2 && i <= currentPage + 2) // 현재 페이지 주변
-        ) {
-          paginationHtml += `<button class="pagination-button ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
-        } else if (
-                (i === currentPage - 3 && currentPage > 3) ||
-                (i === currentPage + 3 && currentPage < totalPages - 2)
-        ) {
-          paginationHtml += `<span class="pagination-ellipsis">...</span>`;
+      const total = Math.ceil(allPosts.length / postsPerPage);
+      if (total <= 1) { pagination.innerHTML = ''; return; }
+      let html = '';
+      if (currentPage > 1) html += `<button class="pagination-button" data-page="${currentPage-1}">이전</button>`;
+      for (let i = 1; i <= total; i++) {
+        if (i===1||i===total||Math.abs(i-currentPage)<=2) {
+          html += `<button class="pagination-button ${i===currentPage?'active':''}" data-page="${i}">${i}</button>`;
+        } else if (i===currentPage-3||i===currentPage+3) {
+          html += `<span class="pagination-ellipsis">...</span>`;
         }
       }
-
-      // 다음 페이지 버튼
-      if (currentPage < totalPages) {
-        paginationHtml += `<button class="pagination-button" data-page="${currentPage + 1}">다음</button>`;
-      }
-
-      pagination.innerHTML = paginationHtml;
-
-      // 페이지네이션 버튼 클릭 이벤트 등록
-      document.querySelectorAll('.pagination-button').forEach(button => {
-        button.addEventListener('click', function() {
-          currentPage = parseInt(this.dataset.page);
-          renderPosts();
-          window.scrollTo(0, 0);
-        });
+      if (currentPage < total) html += `<button class="pagination-button" data-page="${currentPage+1}">다음</button>`;
+      pagination.innerHTML = html;
+      document.querySelectorAll('.pagination-button').forEach(b => {
+        b.onclick = () => { currentPage = +b.dataset.page; renderPosts(); window.scrollTo(0,0); };
       });
     }
 
-    // 날짜 포맷팅
-    function formatDate(dateString) {
-      if (!dateString) return '';
-
-      const date = new Date(dateString);
-      const now = new Date();
-
-      // 오늘 날짜인 경우 시간만 표시
-      if (date.toDateString() === now.toDateString()) {
-        return `오늘 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-      }
-
-      // 어제 날짜인 경우
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      if (date.toDateString() === yesterday.toDateString()) {
-        return `어제 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-      }
-
-      // 그 외 날짜
-      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    function formatDate(s) {
+      if (!s) return '';
+      const d = new Date(s), now = new Date(), y = new Date(now);
+      if (d.toDateString() === now.toDateString())
+        return `오늘 ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      y.setDate(now.getDate()-1);
+      if (d.toDateString() === y.toDateString())
+        return `어제 ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
     }
 
-    // 새 글 버튼 클릭 이벤트
-    createPostButton.addEventListener('click', function() {
-      if (isLoggedIn) {
-        window.location.href = '/board/create';
-      } else {
-        loginRequired.style.display = 'block';
-      }
-    });
-  });
+    createPostButton.onclick = () => {
+      if (isLoggedIn) location.href = '/board/create';
+      else loginRequired.style.display = 'block';
+    };
 
-  // 인증 상태 확인 (페이지 진입 시)
-  document.addEventListener('DOMContentLoaded', async function() {
-    const authButtons = document.getElementById('authButtons');
-
-    try {
-      const response = await fetch('/api/auth/user');
-
-      if (response.ok) {
-        // 로그인된 상태
-        const user = await response.json();
-        authButtons.innerHTML = `
-          <span class="user-greeting">안녕하세요, ${user.nickname}님!</span>
-          <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
-            <button type="submit" class="navigation-button">로그아웃</button>
-          </form>
-        `;
-      } else {
-        // 로그인되지 않은 상태
-        authButtons.innerHTML = `<a href="/auth/login" class="navigation-button">로그인</a>
-          <a href="/auth/register" class="navigation-button">회원가입</a>`;
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-    }
+    checkAuthStatus();
   });
 </script>
 </body>

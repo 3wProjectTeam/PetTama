@@ -7,208 +7,246 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        .shop-container {
-            background-color: var(--background-light);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-sm);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
+    /* === form 페이지와 동일한 네비/인증 버튼 스타일 === */
+    .navigation-button,
+    .primary-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    padding: 0.5rem 1.2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    border: none;
+    cursor: pointer;
+    justify-content: center;
+    font-size: 1rem;
+    pointer-events: auto;
+    }
+    .navigation-button:hover,
+    .primary-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+    }
 
-        .shop-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
+    /* === form 페이지와 동일한 네비게이션 / 인증 레이아웃 === */
+    .navigation,
+    #authButtons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0.5rem 0;
+    justify-content: center;
+    }
+    /* ==================================================== */
 
-        .tab-container {
-            display: flex;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-        }
+    .shop-container {
+    background-color: var(--background-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    }
 
-        .tab-button {
-            padding: 0.75rem 1.5rem;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            font-weight: 600;
-            cursor: pointer;
-            color: var(--text-secondary);
-            transition: all var(--transition-fast);
-        }
+    .shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    }
 
-        .tab-button.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-        }
+    .tab-container {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    }
 
-        .tab-button:hover:not(.active) {
-            color: var(--text-primary);
-            border-bottom-color: var(--border-color);
-        }
+    .tab-button {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+    }
 
-        .item-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 1.5rem;
-        }
+    .tab-button.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    }
 
-        .item-card {
-            background-color: var(--background-gray);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-        }
+    .tab-button:hover:not(.active) {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+    }
 
-        .item-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-md);
-        }
+    .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+    }
 
-        .item-image {
-            height: 120px;
-            background-color: var(--primary-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-        }
+    .item-card {
+    background-color: var(--background-gray);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
 
-        .item-details {
-            padding: 1rem;
-        }
+    .item-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+    }
 
-        .item-name {
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
+    .item-image {
+    height: 120px;
+    background-color: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    }
 
-        .item-description {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-            height: 2.5rem;
-            overflow: hidden;
-        }
+    .item-details {
+    padding: 1rem;
+    }
 
-        .item-price {
-            font-weight: 600;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-        }
+    .item-name {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    }
 
-        .item-effects {
-            font-size: 0.75rem;
-            margin-bottom: 1rem;
-        }
+    .item-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    height: 2.5rem;
+    overflow: hidden;
+    }
 
-        .effect-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.25rem;
-        }
+    .item-price {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    }
 
-        .buy-button {
-            width: 100%;
-            padding: 0.5rem;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color var(--transition-fast);
-        }
+    .item-effects {
+    font-size: 0.75rem;
+    margin-bottom: 1rem;
+    }
 
-        .buy-button:hover {
-            background-color: var(--primary-dark);
-        }
+    .effect-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+    }
 
-        .empty-message {
-            padding: 2rem;
-            text-align: center;
-            color: var(--text-light);
-        }
+    .buy-button {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    }
 
-        .status-message {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: var(--radius-md);
-            font-weight: 500;
-            display: none;
-        }
+    .buy-button:hover {
+    background-color: var(--primary-dark);
+    }
 
-        .status-message.success {
-            background-color: var(--success-color);
-            color: white;
-            display: block;
-        }
+    .empty-message {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+    }
 
-        .status-message.error {
-            background-color: var(--danger-color);
-            color: white;
-            display: block;
-        }
+    .status-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    display: none;
+    }
 
-        .login-required-message {
-            text-align: center;
-            padding: 2rem;
-            background-color: var(--primary-light);
-            border-radius: var(--radius-md);
-        }
+    .status-message.success {
+    background-color: var(--success-color);
+    color: white;
+    display: block;
+    }
 
-        .login-required-message a {
-            color: var(--primary-color);
-            font-weight: 700;
-            text-decoration: none;
-        }
+    .status-message.error {
+    background-color: var(--danger-color);
+    color: white;
+    display: block;
+    }
 
-        .user-greeting {
-            font-weight: 600;
-            margin-right: 1rem;
-        }
+    .login-required-message {
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--primary-light);
+    border-radius: var(--radius-md);
+    }
 
-        .inventory-button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
-        }
+    .login-required-message a {
+    color: var(--primary-color);
+    font-weight: 700;
+    text-decoration: none;
+    }
 
-        .inventory-button {
-            display: flex;
-            align-items: center;
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            text-decoration: none;
-            transition: all var(--transition-fast);
-        }
+    .user-greeting {
+    font-weight: 600;
+    margin-right: 1rem;
+    }
 
-        .inventory-button:hover {
-            background-color: var(--primary-color);
-            color: white;
-            transform: translateY(-2px);
-        }
+    .inventory-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    }
 
-        .inventory-icon {
-            font-size: 1.5rem;
-            margin-right: 0.5rem;
-        }
+    .inventory-button {
+    display: flex;
+    align-items: center;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    }
+
+    .inventory-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    }
+
+    .inventory-icon {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+    }
     </style>
 </head>
 <body>
 <div class="container">
     <header>
-        <h1>PetTama</h1>
+        <a href="/home" style="text-decoration: none; color: inherit;">
+            <h1>PetTama</h1>
+        </a>
         <p class="subtitle">애완용품 상점</p>
         <div class="navigation">
             <a href="/home" class="navigation-button">홈으로</a>

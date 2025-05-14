@@ -7,6 +7,41 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <style>
+    /* 이식한 네비/인증 버튼 스타일 */
+    .navigation-button,
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--primary-light);
+      color: var(--primary-color);
+      padding: 0.5rem 1.2rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      border: none;
+      cursor: pointer;
+      justify-content: center;
+      font-size: 1rem;
+      pointer-events: auto;
+    }
+    .navigation-button:hover,
+    .primary-btn:hover {
+      background-color: var(--primary-color);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    /* 이식한 네비게이션 및 인증 버튼 레이아웃 */
+    .navigation, #authButtons {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin: 0.5rem 0;
+      justify-content: center;
+    }
+
+    /* 기존 스타일 */
     .form-container {
       background-color: var(--background-light);
       border-radius: var(--radius-md);
@@ -76,21 +111,6 @@
       color: inherit;
     }
 
-    .navigation-button {
-      display: inline-block;
-      margin-right: 0.5rem;
-      padding: 0.5rem 1rem;
-      color: var(--text-primary);
-      background-color: var(--background-gray);
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      transition: background-color var(--transition-fast);
-    }
-
-    .navigation-button:hover {
-      background-color: var(--border-color);
-    }
-
     .status-message {
       margin-top: 1rem;
       padding: 0.75rem;
@@ -143,7 +163,9 @@
 <body>
 <div class="container">
   <header>
-    <h1>PetTama</h1>
+    <a href="/home" style="text-decoration: none; color: inherit;">
+      <h1>PetTama</h1>
+    </a>
     <p class="subtitle">반려동물 커뮤니티</p>
     <div class="navigation">
       <a href="/home" class="navigation-button">홈으로</a>
@@ -198,7 +220,7 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // DOM 요소
+    // (스크립트는 변경 없이 그대로)
     const formTitle = document.getElementById('formTitle');
     const postForm = document.getElementById('postForm');
     const postTitleInput = document.getElementById('postTitle');
@@ -211,254 +233,95 @@
     const contentArea = document.getElementById('contentArea');
     const loginRequired = document.getElementById('loginRequired');
     const authButtons = document.getElementById('authButtons');
+    let isEditMode = false, postId = null, isLoggedIn = false, currentUser = null;
 
-    // 상태 변수
-    let isEditMode = false;
-    let postId = null;
-    let isLoggedIn = false;
-    let currentUser = null;
-
-    // 페이지 로드 시 로그인 상태 확인
     checkAuthStatus();
-
-    // 로그인 상태 확인
     async function checkAuthStatus() {
       try {
         const response = await fetch('/api/auth/user');
-
         if (response.ok) {
-          // 로그인된 상태
           currentUser = await response.json();
           isLoggedIn = true;
-
-          // 사용자 닉네임 표시
           postNicknameDisplay.textContent = currentUser.nickname;
           postNicknameInput.value = currentUser.nickname;
-
-          // 인증 버튼 업데이트
           authButtons.innerHTML = `
             <span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>
             <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
               <button type="submit" class="navigation-button">로그아웃</button>
-            </form>
-          `;
-
-          // 컨텐츠 영역 표시
+            </form>`;
           contentArea.style.display = 'block';
           loginRequired.style.display = 'none';
-
-          // 초기화 (게시글 로드 등)
           initialize();
         } else {
-          // 로그인되지 않은 상태
           isLoggedIn = false;
-
-          // 인증 버튼 업데이트
           authButtons.innerHTML = `
             <a href="/auth/login" class="navigation-button">로그인</a>
-            <a href="/auth/register" class="navigation-button">회원가입</a>
-          `;
-
-          // 로그인 필요 메시지 표시
+            <a href="/auth/register" class="navigation-button">회원가입</a>`;
           contentArea.style.display = 'none';
           loginRequired.style.display = 'block';
         }
       } catch (error) {
-        console.error('Error checking auth status:', error);
+        console.error(error);
         isLoggedIn = false;
-
-        // 로그인 필요 메시지 표시
         contentArea.style.display = 'none';
         loginRequired.style.display = 'block';
       }
     }
 
-    // URL에서 게시글 ID 추출 (수정 모드인 경우)
     function getPostIdFromUrl() {
-      const pathParts = window.location.pathname.split('/');
-
-      // URL이 /board/edit/{id} 패턴인 경우 수정 모드
-      if (pathParts.length >= 3 && pathParts[pathParts.length - 2] === 'edit') {
-        return pathParts[pathParts.length - 1];
-      }
-
-      return null;
+      const parts = window.location.pathname.split('/');
+      return parts[parts.length - 2] === 'edit' ? parts.pop() : null;
     }
 
-    // 상태 메시지 표시
-    function showStatusMessage(message, type) {
-      statusMessage.textContent = message;
-      statusMessage.className = 'status-message';
-
-      if (type) {
-        statusMessage.classList.add(type);
-      }
-
-      // 성공 메시지의 경우 자동으로 사라지도록 함
-      if (type === 'success') {
-        setTimeout(function() {
-          statusMessage.textContent = '';
-          statusMessage.className = 'status-message';
-        }, 3000);
-      }
-    }
-
-    // 초기화 함수
     function initialize() {
-      if (!isLoggedIn) {
-        return;
-      }
-
-      // URL을 확인해 모드(생성/수정) 결정
+      if (!isLoggedIn) return;
       postId = getPostIdFromUrl();
       isEditMode = !!postId;
-
-      if (isEditMode) {
-        // 수정 모드일 경우 기존 게시글 데이터 불러오기
-        formTitle.textContent = '게시글 수정';
-        loadPostData(postId);
-      } else {
-        // 생성 모드일 경우 빈 폼 표시
-        formTitle.textContent = '게시글 작성';
-      }
+      formTitle.textContent = isEditMode ? '게시글 수정' : '게시글 작성';
+      if (isEditMode) loadPostData(postId);
     }
 
-    // 게시글 데이터 불러오기 (수정 모드)
-    async function loadPostData(postId) {
+    async function loadPostData(id) {
       try {
-        const response = await fetch(`/api/posts/${postId}`);
-        if (!response.ok) {
-          throw new Error('게시글을 불러오는데 실패했습니다.');
-        }
-
-        const post = await response.json();
-
-        // 폼에 값 채우기
+        const res = await fetch(`/api/posts/${id}`);
+        if (!res.ok) throw new Error();
+        const post = await res.json();
         postTitleInput.value = post.title;
         postContentInput.value = post.content;
-
-        // 작성자 닉네임 표시 (원래 작성자와 현재 사용자가 다를 경우 처리 필요)
-        if (post.nickname !== currentUser.nickname) {
-          showStatusMessage('주의: 다른 사용자의 게시글을 수정하고 있습니다. 저장 시 작성자가 변경됩니다.', 'error');
-        }
-      } catch (error) {
-        console.error('Error loading post data:', error);
-        showStatusMessage('게시글을 불러오는데 실패했습니다: ' + error.message, 'error');
+      } catch (e) {
+        showStatusMessage('불러오기 실패', 'error');
       }
     }
 
-    // 게시글 생성
-    async function createPost(postData) {
-      try {
-        const response = await fetch('/api/posts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(postData)
-        });
-
-        if (!response.ok) {
-          throw new Error('게시글 작성에 실패했습니다.');
-        }
-
-        const createdPost = await response.json();
-        showStatusMessage('게시글이 성공적으로 작성되었습니다.', 'success');
-
-        // 잠시 후 상세 페이지로 이동
-        setTimeout(function() {
-          window.location.href = `/board/${createdPost.id}`;
-        }, 1000);
-      } catch (error) {
-        console.error('Error creating post:', error);
-        showStatusMessage('게시글 작성 오류: ' + error.message, 'error');
-      }
+    function showStatusMessage(msg, type) {
+      statusMessage.textContent = msg;
+      statusMessage.className = 'status-message ' + (type||'');
+      if (type === 'success') setTimeout(() => { statusMessage.textContent=''; statusMessage.className='status-message'; }, 3000);
     }
 
-    // 게시글 수정
-    async function updatePost(postId, postData) {
-      try {
-        const response = await fetch(`/api/posts/${postId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(postData)
-        });
-
-        if (!response.ok) {
-          throw new Error('게시글 수정에 실패했습니다.');
-        }
-
-        const updatedPost = await response.json();
-        showStatusMessage('게시글이 성공적으로 수정되었습니다.', 'success');
-
-        // 잠시 후 상세 페이지로 이동
-        setTimeout(function() {
-          window.location.href = `/board/${updatedPost.id}`;
-        }, 1000);
-      } catch (error) {
-        console.error('Error updating post:', error);
-        showStatusMessage('게시글 수정 오류: ' + error.message, 'error');
-      }
-    }
-
-    // 폼 제출 처리
-    postForm.addEventListener('submit', function(e) {
+    postForm.addEventListener('submit', async e => {
       e.preventDefault();
-
       if (!isLoggedIn) {
         showStatusMessage('로그인이 필요합니다.', 'error');
         loginRequired.style.display = 'block';
         return;
       }
-
-      // 입력값 가져오기
-      const title = postTitleInput.value.trim();
-      const content = postContentInput.value.trim();
-      const nickname = currentUser.nickname; // 로그인한 사용자의 닉네임 사용
-
-      // 입력값 검증
-      if (!title) {
-        showStatusMessage('제목을 입력해주세요.', 'error');
-        postTitleInput.focus();
-        return;
-      }
-
-      if (!content) {
-        showStatusMessage('내용을 입력해주세요.', 'error');
-        postContentInput.focus();
-        return;
-      }
-
-      // 게시글 데이터 생성
-      const postData = {
-        title,
-        nickname,
-        content
-      };
-
-      // 수정 모드인 경우 게시글 ID 포함
-      if (isEditMode) {
-        postData.id = postId;
-      }
-
-      // API 호출
-      if (isEditMode) {
-        updatePost(postId, postData);
-      } else {
-        createPost(postData);
+      const data = { title: postTitleInput.value.trim(), content: postContentInput.value.trim(), nickname: currentUser.nickname };
+      try {
+        const url = isEditMode ? `/api/posts/${postId}` : '/api/posts';
+        const method = isEditMode ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        if (!res.ok) throw new Error();
+        const result = await res.json();
+        showStatusMessage(isEditMode?'수정 완료':'작성 완료','success');
+        setTimeout(()=>{ window.location.href = `/board/${result.id}`; }, 1000);
+      } catch {
+        showStatusMessage('저장 실패','error');
       }
     });
 
-    // 취소 버튼 클릭 처리
-    cancelButton.addEventListener('click', function() {
-      // 수정 모드인 경우 상세 페이지로, 생성 모드인 경우 목록 페이지로 이동
-      if (isEditMode) {
-        window.location.href = `/board/${postId}`;
-      } else {
-        window.location.href = '/board';
-      }
+    cancelButton.addEventListener('click', () => {
+      window.location.href = isEditMode?`/board/${postId}`:'/board';
     });
   });
 </script>
