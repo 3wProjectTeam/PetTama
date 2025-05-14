@@ -212,7 +212,9 @@ public class PetService {
             throw new IllegalStateException(
                     "펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
         }
-        return itemService.useItem(userId, petId, itemId);
+        Pet updatedPet = PetFSM.feed(pet);
+        itemService.useItem(userId, petId, itemId);
+        return createEnhancedDto(updatedPet);
     }
 
     @Transactional
@@ -272,19 +274,27 @@ public class PetService {
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
-
+        if (pet.isSleeping()) {
+            LocalDateTime endTime = pet.getSleepEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 자고 있습니다. " + endTime.format(formatter) + "까지 깨울 수 없습니다.");
+        }
+        if (pet.isWalking()) {
+            LocalDateTime endTime = pet.getWalkEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            throw new IllegalStateException(
+                    "펫이 산책 중입니다. " + endTime.format(formatter) + "까지 다른 활동을 할 수 없습니다.");
+        }
         Pet updatedPet = PetFSM.sleep(pet);
-
         // 로그 추가 - 저장 전 상태 확인
         log.info("Before save - Pet sleeping: {}, start: {}, end: {}",
                 updatedPet.isSleeping(), updatedPet.getSleepStartTime(), updatedPet.getSleepEndTime());
 
         updatedPet = petRepository.save(updatedPet);
-
         // 로그 추가 - 저장 후 상태 확인
         log.info("After save - Pet sleeping: {}, start: {}, end: {}",
                 updatedPet.isSleeping(), updatedPet.getSleepStartTime(), updatedPet.getSleepEndTime());
-
         return createEnhancedDto(updatedPet);
     }
 
