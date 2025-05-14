@@ -1,6 +1,5 @@
 package com.example.PetTama.service;
 
-import com.example.PetTama.controller.AuthApiController;
 import com.example.PetTama.dto.UserDto;
 import com.example.PetTama.entity.User;
 import com.example.PetTama.repository.UserRepository;
@@ -19,7 +18,7 @@ import java.util.Collections;
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private static final Logger logger = LoggerFactory.getLogger(AuthApiController.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
