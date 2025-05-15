@@ -3,6 +3,7 @@ package com.example.PetTama.dto;
 import com.example.PetTama.fsm.PetFSM.PetState;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,9 +27,15 @@ public class PetGetDto {
     private boolean walking;
     private LocalDateTime walkEndTime;
 
+    // 이미지 경로 목록
+    private List<String> imagePaths;
+    // 애니메이션 필요 여부
+    private boolean animated;
+
     public void setSleeping(Boolean sleeping) {
         this.sleeping = (sleeping != null) ? sleeping : false;
     }
+
     public void setWalking(Boolean walking) {
         this.walking = (walking != null) ? walking : false;
     }
@@ -44,5 +51,7 @@ public class PetGetDto {
         this.thirsty = thirsty;
         this.stress = stress;
         this.sleeping = false;
+        this.walking = false;
+        this.animated = false;
     }
 }

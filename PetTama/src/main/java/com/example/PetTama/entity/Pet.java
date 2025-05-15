@@ -7,6 +7,9 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Entity
@@ -51,7 +54,6 @@ public class Pet {
     @Column(name = "last_fed_time")
     private LocalDateTime lastFedTime;
 
-    // boolean 대신 Boolean 래퍼 클래스 사용 또는 기본값 false 지정
     @Column(name = "is_sleeping", nullable = false)
     private boolean sleeping = false;
 
@@ -69,7 +71,87 @@ public class Pet {
 
     @Column(name = "walk_end_time")
     private LocalDateTime walkEndTime;
-    
+
+    /**
+     * 상태별 이미지 경로를 반환하는 메서드
+     * @return 이미지 경로 목록
+     */
+    public List<String> getStateImagePaths() {
+        try {
+            PetFSM.PetState state = PetFSM.getCurrentState(this);
+
+            // 수면 중인 경우
+            if (this.isSleeping()) {
+                return Arrays.asList(
+                        "/images/" + this.getPetType().toLowerCase() + "_sleep1.png",
+                        "/images/" + this.getPetType().toLowerCase() + "_sleep2.png"
+                );
+            }
+
+            // 산책 중인 경우
+            if (this.isWalking()) {
+                return Arrays.asList(
+                        "/images/" + this.getPetType().toLowerCase() + "_happy1.png",
+                        "/images/" + this.getPetType().toLowerCase() + "_happy2.png"
+                );
+            }
+
+            // 상태에 따른 이미지 경로 결정
+            switch (state) {
+                case HAPPY:
+                    // 행복한 상태일 때 애니메이션을 위한 두 개의 이미지 반환
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_happy1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_happy2.png"
+                    );
+                case HUNGRY:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_tired1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_tired2.png"
+                    );
+                case TIRED:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_tired1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_tired2.png"
+                    );
+                case BORED:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_tired1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_tired2.png"
+                    );
+                case STRESSED:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_sick1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_sick2.png"
+                    );
+                case THIRSTY:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_tired1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_tired2.png"
+                    );
+                case SICK:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_sick1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_sick2.png"
+                    );
+                case CRITICAL:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_sick1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_sick2.png"
+                    );
+                default:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_happy1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_happy2.png"
+                    );
+            }
+        } catch (Exception e) {
+            log.error("이미지 경로 결정 중 오류 발생: petId={}", this.getId(), e);
+            // 기본 이미지 경로 반환
+            return Collections.singletonList("/images/" + (this.getPetType() != null ? this.getPetType().toLowerCase() : "default") + ".png");
+        }
+    }
+
     public void setSleeping(boolean sleeping) {
         this.sleeping = sleeping;
         if (!sleeping) {
@@ -78,7 +160,7 @@ public class Pet {
             this.sleepEndTime = null;
         }
     }
-    
+
     public void setWalking(boolean walking) {
         this.walking = walking;
         if (!walking) {
@@ -118,11 +200,17 @@ public class Pet {
                 // 오류 발생 시 기본 권장 사항 설정
                 dto.setRecommendation("펫을 돌봐주세요.");
             }
+
+            // 상태별 이미지 경로 설정
+            List<String> imagePaths = pet.getStateImagePaths();
+            dto.setImagePaths(imagePaths);
+            dto.setAnimated(imagePaths.size() > 1);
+
             dto.setLastFedTime(pet.getLastFedTime());
             dto.setSleeping(pet.isSleeping());
             dto.setSleepEndTime(pet.getSleepEndTime());
             dto.setWalking(pet.isWalking());
-            dto.setSleepEndTime(pet.getSleepEndTime());
+            dto.setWalkEndTime(pet.getWalkEndTime());
             return dto;
         } catch (Exception e) {
             log.error("DTO 변환 중 오류: petId={}", pet.getId(), e);
@@ -144,6 +232,11 @@ public class Pet {
         fallbackDto.setState(PetFSM.PetState.HAPPY);
         fallbackDto.setRecommendation("펫을 돌봐주세요.");
         fallbackDto.setSleeping(false);
+
+        // 기본 이미지 경로 설정
+        fallbackDto.setImagePaths(Collections.singletonList("/images/" + pet.getPetType().toLowerCase() + ".png"));
+        fallbackDto.setAnimated(false);
+
         return fallbackDto;
     }
 }

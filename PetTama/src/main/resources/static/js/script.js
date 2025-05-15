@@ -24,7 +24,10 @@ function handleNormalPet(pet) {
     // 펫 타입에 맞는 이모지로 이미지 업데이트
     if (petImage) {
         const petEmoji = petEmojis[pet.petType] || petEmojis.default;
-        petImage.textContent = petEmoji;
+        const petEmojiElement = document.querySelector('.pet-emoji');
+        if (petEmojiElement) {
+            petEmojiElement.textContent = petEmoji;
+        }
     }
 }
 
@@ -90,14 +93,15 @@ function updatePetState(pet) {
         petStateBadge.classList.add(state.toLowerCase());
     }
 
-    // 펫 이미지 업데이트
-    if (petImage) {
+    // 펫 이모지 업데이트
+    const petEmojiElement = document.querySelector('.pet-emoji');
+    if (petEmojiElement) {
         if (state === 'CRITICAL' || state === 'SICK') {
-            petImage.textContent = stateEmojis[state]; // 위험/아픔 상태 이모지
+            petEmojiElement.textContent = stateEmojis[state];
         } else {
             // 일반 상태일 때 펫 타입에 맞는 이모지
             const petEmoji = petEmojis[pet.petType] || petEmojis.default;
-            petImage.textContent = petEmoji;
+            petEmojiElement.textContent = petEmoji;
         }
     }
 }
@@ -272,7 +276,6 @@ function updateWalkTimerDisplay(walkEndTime) {
     if (petStateBadge && petImage) {
         petStateBadge.textContent = '산책 중';
         petStateBadge.className = 'pet-state-badge walking';
-        petImage.textContent = '🚶';
     }
 
     // 추천 메시지 업데이트
@@ -366,9 +369,9 @@ function handleWalkError(errorMessage) {
                     petStateBadge.className = 'pet-state-badge walking';
                 }
 
-                // 산책 아이콘으로 변경
-                if (petImage) {
-                    petImage.textContent = '🚶';
+                const petEmojiElement = document.querySelector('.pet-emoji');
+                if (petEmojiElement) {
+                    petEmojiElement.textContent = '🚶';
                 }
 
                 // 산책 상태 메시지 표시
@@ -1475,7 +1478,7 @@ function displayPetDetails(pet) {
         });
     }
 
-    // 펫 상태에 따른 처리 - 명확한 조건 구분
+    // 펫 상태에 따른 처리
     if (pet.sleeping === true) {
         console.log(pet.name + "은(는) 수면 중 상태");
         handleSleepingPet(pet);
@@ -1484,8 +1487,51 @@ function displayPetDetails(pet) {
         handleWalkingPet(pet);
     } else {
         console.log(pet.name + "은(는) 일반 상태");
-        // 일반 상태 - 모든 효과 제거
         handleNormalPet(pet);
+    }
+
+    // 상태 이미지 업데이트
+    updateStateImage(pet);
+}
+/**
+ * 상태에 따른 이미지 업데이트
+ * @param {Object} pet - 펫 데이터
+ */
+function updateStateImage(pet) {
+    const petImageElement = document.querySelector('.pet-image');
+    if (!petImageElement) return;
+
+    // 기존 애니메이션 타이머 정리
+    if (window.petAnimationInterval) {
+        clearInterval(window.petAnimationInterval);
+        window.petAnimationInterval = null;
+    }
+
+    // 이미지 경로가 있고 애니메이션이 필요한 경우
+    if (pet.imagePaths && pet.imagePaths.length > 0) {
+        if (pet.animated && pet.imagePaths.length > 1) {
+            console.log("애니메이션 이미지 사용:", pet.imagePaths);
+
+            // 애니메이션 처리
+            let currentIndex = 0;
+
+            // 첫 이미지 설정
+            petImageElement.innerHTML = `<img src="${pet.imagePaths[currentIndex]}" alt="${pet.name}" class="pet-img">`;
+
+            // 0.5초마다 이미지 전환
+            window.petAnimationInterval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % pet.imagePaths.length;
+                petImageElement.innerHTML = `<img src="${pet.imagePaths[currentIndex]}" alt="${pet.name}" class="pet-img">`;
+            }, 500); // 0.5초 간격
+        } else {
+            console.log("단일 이미지 사용:", pet.imagePaths[0]);
+
+            // 단일 이미지 표시
+            petImageElement.innerHTML = `<img src="${pet.imagePaths[0]}" alt="${pet.name}" class="pet-img">`;
+        }
+    } else {
+        // 이미지 경로가 없는 경우 빈 공간 표시
+        petImageElement.innerHTML = '';
     }
 }
 
@@ -1517,8 +1563,9 @@ function handleSleepingPet(pet) {
         }
 
         // 수면 아이콘으로 변경
-        if (petImage) {
-            petImage.textContent = '💤';
+        const petEmojiElement = document.querySelector('.pet-emoji');
+        if (petEmojiElement) {
+            petEmojiElement.textContent = '💤';
         }
 
         // 남은 시간 계산
@@ -1580,5 +1627,83 @@ function handleWalkingPet(pet) {
 
         // 산책 타이머 시작
         startWalkTimer(walkEndTime);
+    }
+}
+/**
+ * 펫 이미지 업데이트 - 서버에서 받은 이미지 경로 사용
+ * @param {Object} pet - 펫 데이터
+ */
+function updatePetImage(pet) {
+    if (!petImage) return;
+
+    // 기존 애니메이션 타이머 정리
+    if (window.petAnimationInterval) {
+        clearInterval(window.petAnimationInterval);
+        window.petAnimationInterval = null;
+    }
+
+    // 수면 중인 경우
+    if (pet.sleeping) {
+        petImage.innerHTML = '<div class="pet-emoji">💤</div>';
+        return;
+    }
+
+    // 산책 중인 경우
+    if (pet.walking) {
+        petImage.innerHTML = '<div class="pet-emoji">🚶</div>';
+        return;
+    }
+
+    // 이미지 경로가 있고 애니메이션이 필요한 경우
+    if (pet.imagePaths && pet.imagePaths.length > 0) {
+        if (pet.animated && pet.imagePaths.length > 1) {
+            console.log("애니메이션 이미지 사용:", pet.imagePaths);
+
+            // 애니메이션 처리
+            let currentIndex = 0;
+
+            // 첫 이미지 설정
+            petImage.innerHTML = `<img src="${pet.imagePaths[currentIndex]}" alt="${pet.name}" class="pet-img">`;
+
+            // 0.5초마다 이미지 전환
+            window.petAnimationInterval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % pet.imagePaths.length;
+                petImage.innerHTML = `<img src="${pet.imagePaths[currentIndex]}" alt="${pet.name}" class="pet-img">`;
+            }, 500); // 0.5초 간격
+        } else {
+            console.log("단일 이미지 사용:", pet.imagePaths[0]);
+
+            // 단일 이미지 표시
+            petImage.innerHTML = `<img src="${pet.imagePaths[0]}" alt="${pet.name}" class="pet-img">`;
+        }
+    } else {
+        console.log("이미지 경로 없음, 이모지 사용");
+
+        // 이미지 경로가 없는 경우 이모지 표시
+        const petEmoji = petEmojis[pet.petType] || petEmojis.default;
+        petImage.textContent = petEmoji;
+    }
+}
+
+/**
+ * 페이지 벗어날 때 타이머 정리
+ */
+function cleanupTimers() {
+    if (feedCooldownTimer) {
+        clearInterval(feedCooldownTimer);
+    }
+
+    if (sleepTimerInterval) {
+        clearInterval(sleepTimerInterval);
+    }
+
+    if (walkTimerInterval) {
+        clearInterval(walkTimerInterval);
+    }
+
+    // 애니메이션 타이머 정리
+    if (window.petAnimationInterval) {
+        clearInterval(window.petAnimationInterval);
+        window.petAnimationInterval = null;
     }
 }

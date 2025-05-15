@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -379,9 +380,6 @@ public class PetService {
         return createEnhancedDto(updatedPet);
     }
 
-    /**
-     * Creates an enhanced DTO that includes additional information like the current state and recommendations
-     */
     private PetGetDto createEnhancedDto(Pet pet) {
         try {
             PetGetDto dto = new PetGetDto(
@@ -405,26 +403,46 @@ public class PetService {
             }
 
             try {
-                // 각 펫 상태에 맞는 개별 recommendation 생성
                 String recommendation = PetFSM.getActionRecommendation(pet);
                 dto.setRecommendation(recommendation);
             } catch (Exception e) {
                 log.error("권장 사항 생성 중 오류: petId={}", pet.getId(), e);
-                // 오류 발생 시 기본 권장 사항 설정
                 dto.setRecommendation("펫을 돌봐주세요.");
             }
+
+            // 상태별 이미지 경로 설정
+            List<String> imagePaths = pet.getStateImagePaths();
+            dto.setImagePaths(imagePaths);
+            dto.setAnimated(imagePaths.size() > 1);
 
             dto.setLastFedTime(pet.getLastFedTime());
             dto.setSleeping(pet.isSleeping());
             dto.setSleepEndTime(pet.getSleepEndTime());
             dto.setWalking(pet.isWalking());
-            dto.setSleepEndTime(pet.getSleepEndTime());
+            dto.setWalkEndTime(pet.getWalkEndTime());
             return dto;
         } catch (Exception e) {
             log.error("DTO 변환 중 오류: petId={}", pet.getId(), e);
+
+            // 폴백 DTO 생성
             PetGetDto fallbackDto = new PetGetDto();
-            // 기본 정보 설정
-            // ...
+            fallbackDto.setId(pet.getId());
+            fallbackDto.setName(pet.getName());
+            fallbackDto.setPetType(pet.getPetType() != null ? pet.getPetType() : "CAT");
+            fallbackDto.setHp(pet.getHp());
+            fallbackDto.setFullness(pet.getFullness());
+            fallbackDto.setHappiness(pet.getHappiness());
+            fallbackDto.setTired(pet.getTired());
+            fallbackDto.setThirsty(pet.getThirsty());
+            fallbackDto.setStress(pet.getStress());
+            fallbackDto.setState(PetFSM.PetState.HAPPY);
+            fallbackDto.setRecommendation("펫을 돌봐주세요.");
+            fallbackDto.setSleeping(false);
+
+            // 기본 이미지 경로 설정
+            fallbackDto.setImagePaths(Collections.singletonList("/images/" + pet.getPetType().toLowerCase() + ".png"));
+            fallbackDto.setAnimated(false);
+
             return fallbackDto;
         }
     }
