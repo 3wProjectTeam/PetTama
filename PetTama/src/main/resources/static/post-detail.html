@@ -304,7 +304,377 @@
 </div>
 
 <script>
-  // (스크립트 부분은 기존과 동일하게 유지하세요)
+  document.addEventListener('DOMContentLoaded', function() {
+    const postContent = document.getElementById('postContent');
+    const commentList = document.getElementById('commentList');
+    const commentForm = document.getElementById('commentForm');
+    const commentLoginRequired = document.getElementById('commentLoginRequired');
+    const commentAuthor = document.getElementById('commentAuthor');
+    const commentAuthorInput = document.getElementById('commentAuthorInput');
+    const commentBody = document.getElementById('commentBody');
+    const submitCommentButton = document.getElementById('submitCommentButton');
+    const editPostButton = document.getElementById('editPostButton');
+    const deletePostButton = document.getElementById('deletePostButton');
+    const editCommentModal = document.getElementById('editCommentModal');
+    const editCommentAuthor = document.getElementById('editCommentAuthor');
+    const editCommentBody = document.getElementById('editCommentBody');
+    const saveEditButton = document.getElementById('saveEditButton');
+    const cancelEditButton = document.getElementById('cancelEditButton');
+    const deleteModal = document.getElementById('deleteModal');
+    const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+    const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+    const authButtons = document.getElementById('authButtons');
+
+    let currentUser = null;
+    let isLoggedIn = false;
+    let currentPostId = null;
+    let currentCommentId = null;
+    let deleteType = '';
+
+    function getPostIdFromUrl() {
+      const parts = window.location.pathname.split('/');
+      return parts[parts.length - 1];
+    }
+
+    async function checkAuthStatus() {
+      try {
+        const response = await fetch('/api/auth/user');
+
+        if (response.ok) {
+          currentUser = await response.json();
+          isLoggedIn = true;
+
+          // 인증 버튼 업데이트
+          authButtons.innerHTML = `
+          <span class="user-greeting">안녕하세요, ${currentUser.nickname}님!</span>
+          <form id="logoutForm" action="/api/auth/logout" method="post" style="display:inline;">
+            <button type="submit" class="navigation-button">로그아웃</button>
+          </form>
+        `;
+
+          // 댓글 폼 표시
+          if (commentForm) commentForm.style.display = 'block';
+          if (commentLoginRequired) commentLoginRequired.style.display = 'none';
+          if (commentAuthor) commentAuthor.textContent = currentUser.nickname;
+          if (commentAuthorInput) commentAuthorInput.value = currentUser.nickname;
+        } else {
+          isLoggedIn = false;
+          currentUser = null;
+
+          // 인증 버튼 업데이트
+          authButtons.innerHTML = `
+          <a href="/auth/login" class="navigation-button">로그인</a>
+          <a href="/auth/register" class="navigation-button">회원가입</a>
+        `;
+
+          // 댓글 관련 UI 처리
+          if (commentForm) commentForm.style.display = 'none';
+          if (commentLoginRequired) commentLoginRequired.style.display = 'block';
+        }
+
+        // 게시글 로드
+        currentPostId = getPostIdFromUrl();
+        if (currentPostId) {
+          loadPost(currentPostId);
+          loadComments(currentPostId);
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        isLoggedIn = false;
+      }
+    }
+
+    async function loadPost(postId) {
+      try {
+        const response = await fetch(`/api/posts/${postId}`);
+        if (!response.ok) throw new Error('게시글을 불러오는데 실패했습니다.');
+
+        const post = await response.json();
+        displayPost(post);
+      } catch (error) {
+        console.error('Error loading post:', error);
+        postContent.innerHTML = `<div class="error-message">게시글을 불러오는데 실패했습니다: ${error.message}</div>`;
+      }
+    }
+
+    function displayPost(post) {
+      postContent.innerHTML = `
+      <div class="post-header">
+        <h2 class="post-title">${post.title}</h2>
+        <div class="post-meta">
+          <span>${post.nickname}</span>
+          <span>${formatDate(post.createdAt)}</span>
+        </div>
+      </div>
+      <div class="post-content">${formatContent(post.content)}</div>
+    `;
+
+      // 수정/삭제 버튼 권한 설정
+      if (isLoggedIn && currentUser && currentUser.nickname === post.nickname) {
+        editPostButton.disabled = false;
+        deletePostButton.disabled = false;
+      } else {
+        editPostButton.disabled = true;
+        deletePostButton.disabled = true;
+      }
+
+      // 버튼 이벤트 핸들러 설정
+      editPostButton.onclick = () => {
+        window.location.href = `/board/edit/${postId}`;
+      };
+
+      deletePostButton.onclick = () => {
+        deleteType = 'post';
+        if (deleteModal) deleteModal.style.display = 'flex';
+      };
+    }
+
+    // 댓글 로드
+    async function loadComments(postId) {
+      try {
+        const response = await fetch(`/api/posts/${postId}/comments`);
+        if (!response.ok) throw new Error('댓글을 불러오는데 실패했습니다.');
+
+        const comments = await response.json();
+        displayComments(comments);
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        commentList.innerHTML = `<div class="error-message">댓글을 불러오는데 실패했습니다: ${error.message}</div>`;
+      }
+    }
+
+    function displayComments(comments) {
+      if (!commentList) return;
+
+      if (comments.length === 0) {
+        commentList.innerHTML = '<div class="empty-message">아직 댓글이 없습니다.</div>';
+        return;
+      }
+
+      const commentsHtml = comments.map(comment => `
+      <div class="comment-item" data-comment-id="${comment.id}">
+        <div class="comment-meta">
+          <span class="comment-author">${comment.name}</span>
+        </div>
+        <div class="comment-body">${formatContent(comment.body)}</div>
+        ${isLoggedIn && currentUser && currentUser.nickname === comment.name ? `
+          <div class="comment-actions">
+            <span class="action-link edit-comment" data-comment-id="${comment.id}">수정</span>
+            <span class="action-link delete-comment" data-comment-id="${comment.id}">삭제</span>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+
+      commentList.innerHTML = commentsHtml;
+
+      document.querySelectorAll('.edit-comment').forEach(button => {
+        button.addEventListener('click', function() {
+          const commentId = this.dataset.commentId;
+          openEditCommentModal(commentId);
+        });
+      });
+
+      document.querySelectorAll('.delete-comment').forEach(button => {
+        button.addEventListener('click', function() {
+          const commentId = this.dataset.commentId;
+          openDeleteCommentModal(commentId);
+        });
+      });
+    }
+
+    async function openEditCommentModal(commentId) {
+      try {
+        const response = await fetch(`/api/posts/${currentPostId}/comments/${commentId}`);
+        if (!response.ok) throw new Error('댓글 정보를 불러오는데 실패했습니다.');
+
+        const comment = await response.json();
+
+        if (editCommentAuthor) editCommentAuthor.textContent = comment.name;
+        if (editCommentBody) editCommentBody.value = comment.body;
+
+        currentCommentId = commentId;
+
+        if (editCommentModal) editCommentModal.style.display = 'flex';
+      } catch (error) {
+        console.error('Error loading comment for edit:', error);
+        alert('댓글 정보를 불러오는데 실패했습니다: ' + error.message);
+      }
+    }
+
+    function openDeleteCommentModal(commentId) {
+      currentCommentId = commentId;
+      deleteType = 'comment';
+      if (deleteModal) deleteModal.style.display = 'flex';
+    }
+
+    async function submitComment() {
+      if (!isLoggedIn) {
+        alert('댓글을 작성하려면 로그인이 필요합니다.');
+        return;
+      }
+
+      const commentData = {
+        postId: currentPostId,
+        name: commentAuthorInput.value,
+        body: commentBody.value
+      };
+
+      if (!commentData.body.trim()) {
+        alert('댓글 내용을 입력해주세요.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/posts/${currentPostId}/comments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(commentData)
+        });
+
+        if (!response.ok) throw new Error('댓글 작성에 실패했습니다.');
+        commentBody.value = '';
+        loadComments(currentPostId); // 댓글 목록 새로고침
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+        alert('댓글 작성에 실패했습니다: ' + error.message);
+      }
+    }
+
+    async function updateComment() {
+      if (!isLoggedIn || !currentCommentId) return;
+
+      const commentData = {
+        id: currentCommentId,
+        postId: currentPostId,
+        name: currentUser.nickname,
+        body: editCommentBody.value
+      };
+
+      if (!commentData.body.trim()) {
+        alert('댓글 내용을 입력해주세요.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/posts/${currentPostId}/comments/${currentCommentId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(commentData)
+        });
+
+        if (!response.ok) throw new Error('댓글 수정에 실패했습니다.');
+        editCommentModal.style.display = 'none';
+        loadComments(currentPostId); // 댓글 목록 새로고침
+      } catch (error) {
+        console.error('Error updating comment:', error);
+        alert('댓글 수정에 실패했습니다: ' + error.message);
+      }
+    }
+
+    // 삭제 처리 (게시글 또는 댓글)
+    async function handleDelete() {
+      if (!isLoggedIn) return;
+
+      try {
+        let response;
+
+        if (deleteType === 'post') {
+          response = await fetch(`/api/posts/${currentPostId}`, {
+            method: 'DELETE'
+          });
+
+          if (!response.ok) throw new Error('게시글 삭제에 실패했습니다.');
+          window.location.href = '/board';
+        } else if (deleteType === 'comment') {
+          response = await fetch(`/api/posts/${currentPostId}/comments/${currentCommentId}`, {
+            method: 'DELETE'
+          });
+
+          if (!response.ok) throw new Error('댓글 삭제에 실패했습니다.');
+
+          deleteModal.style.display = 'none';
+          loadComments(currentPostId);
+        }
+      } catch (error) {
+        console.error('Error deleting:', error);
+        alert('삭제에 실패했습니다: ' + error.message);
+        deleteModal.style.display = 'none';
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '';
+
+      const date = new Date(dateString);
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (date >= todayStart) {
+        return `오늘 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      }
+      const yesterdayStart = new Date(todayStart);
+      yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+      if (date >= yesterdayStart) {
+        return `어제 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      }
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    }
+
+    // 내용 포맷팅 (줄바꿈 처리)
+    function formatContent(content) {
+      if (!content) return '';
+      return content.replace(/\n/g, '<br>');
+    }
+
+    // 이벤트 리스너 설정
+    if (submitCommentButton) {
+      submitCommentButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        submitComment();
+      });
+    }
+
+    if (saveEditButton) {
+      saveEditButton.addEventListener('click', function() {
+        updateComment();
+      });
+    }
+
+    if (cancelEditButton) {
+      cancelEditButton.addEventListener('click', function() {
+        editCommentModal.style.display = 'none';
+      });
+    }
+
+    if (confirmDeleteButton) {
+      confirmDeleteButton.addEventListener('click', function() {
+        handleDelete();
+      });
+    }
+
+    if (cancelDeleteButton) {
+      cancelDeleteButton.addEventListener('click', function() {
+        deleteModal.style.display = 'none';
+      });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    window.addEventListener('click', function(e) {
+      if (e.target === editCommentModal) {
+        editCommentModal.style.display = 'none';
+      }
+      if (e.target === deleteModal) {
+        deleteModal.style.display = 'none';
+      }
+    });
+
+    checkAuthStatus();
+  });
 </script>
 </body>
 </html>
