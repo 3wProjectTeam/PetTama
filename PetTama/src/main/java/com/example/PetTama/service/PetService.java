@@ -46,9 +46,12 @@ public class PetService {
         if (pet == null) {
             throw new EntityNotFoundException("Pet not found for id: " + petId);
         }
-
+        
+        // 일일 상태 체크 (비만, 우울증 확인)
+        Pet checkedPet = PetFSM.checkDailyStatus(pet);
+        
         // 시간 기반 상태 업데이트
-        Pet updatedPet = PetFSM.updatePetStatus(pet);
+        Pet updatedPet = PetFSM.updatePetStatus(checkedPet);
 
         // 명시적인 상태 확인 및 업데이트
         boolean changed = false;
@@ -91,6 +94,9 @@ public class PetService {
             log.info("Updated pet state in database: sleeping={}, walking={}",
                     updatedPet.isSleeping(), updatedPet.isWalking());
         }
+        
+        // 상태 저장 및 반환
+        updatedPet = petRepository.save(updatedPet);
         return createEnhancedDto(updatedPet);
     }
 
@@ -420,6 +426,11 @@ public class PetService {
             dto.setSleepEndTime(pet.getSleepEndTime());
             dto.setWalking(pet.isWalking());
             dto.setWalkEndTime(pet.getWalkEndTime());
+            
+            // 추가 상태 정보 설정
+            dto.setObese(pet.isObese());
+            dto.setDepressed(pet.isDepressed());
+            
             return dto;
         } catch (Exception e) {
             log.error("DTO 변환 중 오류: petId={}", pet.getId(), e);
@@ -438,6 +449,10 @@ public class PetService {
             fallbackDto.setState(PetFSM.PetState.HAPPY);
             fallbackDto.setRecommendation("펫을 돌봐주세요.");
             fallbackDto.setSleeping(false);
+            
+            // 기본 추가 상태 설정
+            fallbackDto.setObese(pet.isObese());
+            fallbackDto.setDepressed(pet.isDepressed());
 
             // 기본 이미지 경로 설정
             fallbackDto.setImagePaths(Collections.singletonList("/images/" + pet.getPetType().toLowerCase() + ".png"));

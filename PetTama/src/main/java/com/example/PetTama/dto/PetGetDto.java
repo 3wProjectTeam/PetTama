@@ -31,6 +31,13 @@ public class PetGetDto {
     private List<String> imagePaths;
     // 애니메이션 필요 여부
     private boolean animated;
+    
+    // 새로 추가된 필드들
+    private boolean obese;          // 비만 상태
+    private boolean depressed;      // 우울증 상태
+    private int fullDaysCount;      // 포만감 100 유지 일수
+    private int highStressDaysCount; // 스트레스 80 이상 유지 일수
+    private int depressionDaysCount; // 우울증 유지 일수
 
     public void setSleeping(Boolean sleeping) {
         this.sleeping = (sleeping != null) ? sleeping : false;
@@ -53,5 +60,10 @@ public class PetGetDto {
         this.sleeping = false;
         this.walking = false;
         this.animated = false;
+        this.obese = false;
+        this.depressed = false;
+        this.fullDaysCount = 0;
+        this.highStressDaysCount = 0;
+        this.depressionDaysCount = 0;
     }
 }
