@@ -139,6 +139,16 @@ public class Pet {
                             "/images/" + this.getPetType().toLowerCase() + "_sick1.png",
                             "/images/" + this.getPetType().toLowerCase() + "_sick2.png"
                     );
+                case OBESE:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_sick1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_sick2.png"
+                    );
+                case DEPRESSED:
+                    return Arrays.asList(
+                            "/images/" + this.getPetType().toLowerCase() + "_sick1.png",
+                            "/images/" + this.getPetType().toLowerCase() + "_sick2.png"
+                    );     
                 default:
                     return Arrays.asList(
                             "/images/" + this.getPetType().toLowerCase() + "_happy1.png",
